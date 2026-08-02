@@ -119,14 +119,25 @@ jobs:
         working-directory: infra/terraform/${{ matrix.stack }}
         run: tflint --format compact
 
-      - name: Setup checkov
-        uses: bridgecrewio/checkov-action@v12
+      # Pin + invoke checkov exactly like `make checkov-<stack>`.
+      # Do NOT pass skip_check here — CLI --skip-check replaces .checkov.yml skip-check entirely.
+      - uses: actions/setup-python@v5
         with:
-          directory: infra/terraform/${{ matrix.stack }}
-          framework: terraform
-          soft_fail: false
-          config_file: infra/terraform/${{ matrix.stack }}/.checkov.yml
-          skip_check: CKV_TF_1
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install checkov (pinned)
+        run: |
+          VERSION=$(tr -d '[:space:]' < infra/terraform/CHECKOV_VERSION)
+          pip install --upgrade pip
+          pip install "checkov==${VERSION}"
+          checkov --version
+
+      - name: checkov
+        run: |
+          checkov -d "infra/terraform/${{ matrix.stack }}" \
+            --config-file "infra/terraform/${{ matrix.stack }}/.checkov.yml" \
+            --framework terraform \
+            --compact --quiet
 
   terraform-aws-plan:
     name: AWS terraform plan (artifact)

@@ -2,8 +2,11 @@
 # ADR-001: no cloud apply targets here.
 
 .PHONY: help up down logs test lint fmt terraform-validate terraform-aws-plan \
-	export-schemas lakehouse-run lakehouse-run-live dbt-build uc-validate \
+	checkov-aws checkov-azure export-schemas lakehouse-run lakehouse-run-live \
+	dbt-build uc-validate \
 	phase1-check phase2-check phase3-check phase4-check phase5-check phase6-check
+
+CHECKOV_VERSION := $(shell tr -d '[:space:]' < infra/terraform/CHECKOV_VERSION)
 
 help:
 	@echo "PRISM targets:"
@@ -19,11 +22,13 @@ help:
 	@echo "  make uc-validate        - structural UC bootstrap / Lakeflow checks"
 	@echo "  make terraform-validate - validate aws + azure stacks (no apply)"
 	@echo "  make terraform-aws-plan - mock-credential plan → tfplan.txt (no apply)"
+	@echo "  make checkov-aws        - checkov on aws stack (same flags as CI)"
+	@echo "  make checkov-azure      - checkov on azure stack (same flags as CI)"
 	@echo "  make phase2-check       - lint + test + uc-validate + terraform-validate"
 	@echo "  make phase3-check       - lint + test + uc-validate + terraform-validate"
 	@echo "  make phase4-check       - lint + test + uc-validate + terraform-validate"
 	@echo "  make phase5-check       - lint + test + uc-validate + terraform-validate"
-	@echo "  make phase6-check       - lint + test + terraform-validate (+ local plan optional)"
+	@echo "  make phase6-check       - lint + test + terraform-validate + checkov (CI-parity)"
 
 up:
 	docker compose up -d --build
@@ -92,4 +97,19 @@ phase4-check: lint test uc-validate terraform-validate
 
 phase5-check: lint test uc-validate terraform-validate
 
-phase6-check: lint test terraform-validate
+# Identical checkov invocation to .github/workflows/ci.yml (no CLI --skip-check).
+checkov-aws:
+	@command -v checkov >/dev/null || pip install "checkov==$(CHECKOV_VERSION)"
+	checkov -d infra/terraform/aws \
+		--config-file infra/terraform/aws/.checkov.yml \
+		--framework terraform \
+		--compact --quiet
+
+checkov-azure:
+	@command -v checkov >/dev/null || pip install "checkov==$(CHECKOV_VERSION)"
+	checkov -d infra/terraform/azure \
+		--config-file infra/terraform/azure/.checkov.yml \
+		--framework terraform \
+		--compact --quiet
+
+phase6-check: lint test terraform-validate checkov-aws checkov-azure

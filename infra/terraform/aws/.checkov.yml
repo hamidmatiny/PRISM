@@ -1,32 +1,23 @@
-# Checkov config for PRISM AWS platform (Phase 6).
-# Skips are intentional platform/product constraints — not "turn off security".
+# Authoritative Checkov config for infra/terraform/aws.
+# Reasons for every skip: CHECKOV_SKIPS.md (and #checkov:skip on resources).
+#
+# IMPORTANT: CI must NOT also pass --skip-check / skip_check:.
+# CLI skip-check replaces this entire list (checkov arg precedence).
 compact: true
+quiet: true
 framework:
   - terraform
 
 skip-check:
-  # Module sources are local paths (./modules/*), not git refs with version pins.
   - CKV_TF_1
-
-  # ALB :80 is open solely for HTTP→HTTPS redirect (listener default_action redirect).
   - CKV_AWS_260
-
-  # Target groups speak HTTP to tasks inside the VPC; TLS terminates at the ALB.
   - CKV_AWS_378
   - CKV_AWS_2
   - CKV2_AWS_28
-
-  # Cross-region replication / event notifications are Phase 7+ multi-region work.
   - CKV_AWS_144
   - CKV2_AWS_62
-
-  # Secret rotation needs a rotation Lambda + schedule; deferred (secrets are CMK-encrypted).
-  - CKV_AWS_149
   - CKV2_AWS_57
-
-  # ECR GetAuthorizationToken requires Resource=* (documented in iam module).
+  - CKV_AWS_149
   - CKV_AWS_111
-
-  # Public ALB is the product edge; WAF + HTTPS + managed rules protect it.
   - CKV_AWS_91
   - CKV2_AWS_20

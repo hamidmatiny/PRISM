@@ -34,6 +34,7 @@ variable "tags" {
 }
 
 resource "aws_security_group" "alb" {
+  #checkov:skip=CKV_AWS_260: Public :80 only for HTTP→HTTPS redirect listener; TLS on :443
   name        = "${var.name_prefix}-alb"
   description = "Public ALB ingress"
   vpc_id      = var.vpc_id
@@ -46,7 +47,6 @@ resource "aws_security_group" "alb" {
     cidr_blocks = ["0.0.0.0/0"]
   }
 
-  # HTTP only to redirect to HTTPS (CKV_AWS_260: public :80 is intentional for redirect).
   ingress {
     description = "HTTP redirect to HTTPS"
     from_port   = 80
@@ -83,8 +83,8 @@ resource "aws_lb" "this" {
   }
 }
 
-#checkov:skip=CKV_AWS_378: TLS terminates at ALB; target groups are HTTP to private tasks
 resource "aws_lb_target_group" "service" {
+  #checkov:skip=CKV_AWS_378: TLS terminates at ALB; TGs are HTTP to private Fargate tasks
   for_each = var.services
 
   name        = substr("${var.name_prefix}-${each.key}", 0, 32)

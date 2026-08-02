@@ -59,3 +59,4 @@ dbt/logs/
 *.log
 .cache/
 coverage.xml
+results.sarif

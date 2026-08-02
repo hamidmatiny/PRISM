@@ -57,6 +57,8 @@ REQUIRED_FILES = [
     "infra/terraform/aws/modules/kms/main.tf",
     "infra/terraform/aws/modules/observability/main.tf",
     "infra/terraform/aws/.checkov.yml",
+    "infra/terraform/aws/CHECKOV_SKIPS.md",
+    "infra/terraform/CHECKOV_VERSION",
     "infra/terraform/aws/.tflint.hcl",
     "contracts/telemetry-schema/README.md",
     "contracts/telemetry-schema/schemas/sensor_ping.schema.json",
@@ -118,3 +120,26 @@ def test_adr001_mentions_no_terraform_apply_in_ci() -> None:
     assert "terraform apply" in text.lower()
     assert "duckdb" in text.lower()
     assert "localstack" in text.lower()
+
+
+def test_ci_checkov_does_not_override_yaml_skips() -> None:
+    """CLI --skip-check replaces .checkov.yml skip-check (checkov precedence).
+
+    Phase 6 CI failed because workflows/ci.yml passed skip_check: CKV_TF_1 while
+    also setting config_file — wiping the documented skip list. Guard that gap.
+    """
+    ci = (ROOT / ".github/workflows/ci.yml").read_text(encoding="utf-8")
+    assert "--config-file" in ci
+    assert "skip_check:" not in ci
+    # Comments may mention the flag; executable lines must not pass it.
+    executable = "\n".join(
+        ln for ln in ci.splitlines() if ln.strip() and not ln.strip().startswith("#")
+    )
+    assert "--skip-check" not in executable
+
+
+def test_makefile_checkov_matches_ci_flags() -> None:
+    makefile = (ROOT / "Makefile").read_text(encoding="utf-8")
+    assert "--config-file infra/terraform/aws/.checkov.yml" in makefile
+    assert "--framework terraform" in makefile
+    assert "--compact" in makefile and "--quiet" in makefile

@@ -21,20 +21,25 @@ variable "tags" {
 # Separate resources (not for_each) so checkov graph checks attach reliably.
 
 resource "aws_s3_bucket" "raw" {
+  #checkov:skip=CKV_AWS_144: CRR deferred to Phase 7 Azure DR — see CHECKOV_SKIPS.md
+  #checkov:skip=CKV2_AWS_62: Event notifications deferred until real consumers exist — see CHECKOV_SKIPS.md
   bucket        = "${var.name_prefix}-raw"
   force_destroy = false
   tags          = merge(var.tags, { Name = "${var.name_prefix}-raw", Zone = "raw" })
 }
 
 resource "aws_s3_bucket" "gold" {
+  #checkov:skip=CKV_AWS_144: CRR deferred to Phase 7 Azure DR — see CHECKOV_SKIPS.md
+  #checkov:skip=CKV2_AWS_62: Event notifications deferred until real consumers exist — see CHECKOV_SKIPS.md
   bucket        = "${var.name_prefix}-gold"
   force_destroy = false
   tags          = merge(var.tags, { Name = "${var.name_prefix}-gold", Zone = "gold" })
 }
 
-# ALB access-log delivery does not support SSE-KMS destinations (AWS constraint).
 resource "aws_s3_bucket" "logs" {
-  #checkov:skip=CKV_AWS_145: ALB access logs require SSE-S3 on the destination bucket
+  #checkov:skip=CKV_AWS_145: ALB access-log delivery requires SSE-S3 (not SSE-KMS)
+  #checkov:skip=CKV_AWS_144: CRR deferred to Phase 7 Azure DR — see CHECKOV_SKIPS.md
+  #checkov:skip=CKV2_AWS_62: Access-logs bucket has no processing consumer — see CHECKOV_SKIPS.md
   bucket        = "${var.name_prefix}-access-logs"
   force_destroy = false
   tags          = merge(var.tags, { Name = "${var.name_prefix}-access-logs", Zone = "logs" })

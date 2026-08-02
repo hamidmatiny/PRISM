@@ -26,6 +26,7 @@ resource "random_password" "rds" {
 }
 
 resource "aws_secretsmanager_secret" "rds" {
+  #checkov:skip=CKV2_AWS_57: Rotation Lambda deferred; secret is CMK-encrypted — see CHECKOV_SKIPS.md
   name                    = "${var.name_prefix}/rds/master"
   description             = "PRISM RDS master credentials"
   recovery_window_in_days = 7
@@ -44,6 +45,7 @@ resource "aws_secretsmanager_secret_version" "rds" {
 }
 
 resource "aws_secretsmanager_secret" "app" {
+  #checkov:skip=CKV2_AWS_57: Rotation Lambda deferred; secret is CMK-encrypted — see CHECKOV_SKIPS.md
   name                    = "${var.name_prefix}/app/runtime"
   description             = "PRISM application runtime secrets (Django, tokens)"
   recovery_window_in_days = 7

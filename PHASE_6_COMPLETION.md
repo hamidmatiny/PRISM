@@ -41,9 +41,17 @@ Local `docker compose` path is unchanged — Terraform is additive.
 - Secret rotation Lambdas, S3 CRR, and multi-region DR remain deferred (Phase 7+).
 - Review-queue depth alarm expects custom metric `PRISM/ReviewQueueDepth` (emitter wiring is ops/Phase 10).
 
+## Local vs CI checkov discrepancy (fixed)
+
+Initial Phase 6 push reported local checkov **300/0**, then GitHub Actions failed with **10** findings.
+
+**Cause:** `.github/workflows/ci.yml` passed `skip_check: CKV_TF_1` into `bridgecrewio/checkov-action`. Checkov CLI precedence means `--skip-check` **replaces** the entire `skip-check` list from `.checkov.yml`, so the documented suppressions never applied in CI. Local `make`/CLI used `--config-file` only → green.
+
+**Fix:** CI and `make checkov-aws` share one pinned invocation (`infra/terraform/CHECKOV_VERSION` + `--config-file` only, no CLI `--skip-check`). Unit test `test_ci_checkov_does_not_override_yaml_skips` guards the gap. Skip ledger: `infra/terraform/aws/CHECKOV_SKIPS.md` + inline `#checkov:skip=` reasons on resources.
+
 ## Justified checkov skips
 
-Documented in `infra/terraform/aws/.checkov.yml` and inline on the access-logs bucket: HTTP target groups behind TLS ALB, public `:80` redirect, CRR/event notifications deferred, secret rotation deferred, ECR auth token account-scoped `*`, ALB SSE-S3 log destination.
+See `infra/terraform/aws/CHECKOV_SKIPS.md`. Highlights: HTTP `:80` redirect-only, HTTP TGs behind TLS ALB, CRR/event notifications deferred to Phase 7/ops, secret rotation deferred (CMK-encrypted), ALB SSE-S3 log destination.
 
 ## How to verify
 
