@@ -1,5 +1,6 @@
 # PRISM local development stack
-# Phase 3: foundation stub + ingestion + cv-service; optional lakehouse / LocalStack.
+# Phase 4: foundation stub + ingestion + cv-service + activation-gateway;
+# optional lakehouse / LocalStack.
 # ADR-001: zero cloud credentials required for `docker compose up`.
 #
 # Host port range: 9100–9199 (see .cursor/rules/monorepo.mdc)
@@ -14,6 +15,7 @@
 #   /data/lakehouse           ← lakehouse silver/gold parquet
 #   /data/cv-review-queue     ← low-confidence CV findings (Phase 5)
 #   /data/cv-findings         ← auto-published high-confidence findings
+#   /data/activation          ← warehouse routing registry (Phase 4)
 # Fixture-only CI path (synthetic bronze, not live ingest):
 #   docker compose --profile lakehouse run --rm lakehouse-fixtures
 
@@ -93,6 +95,43 @@ services:
           "python",
           "-c",
           "import urllib.request; urllib.request.urlopen('http://127.0.0.1:9102/health')",
+        ]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 25s
+
+  # Phase 4 — Activation gateway (Redshift + Snowflake adapters; embedded mocks).
+  activation-gateway:
+    build:
+      context: .
+      dockerfile: activation-gateway/Dockerfile
+    container_name: prism-activation-gateway
+    ports:
+      - "9103:9103"
+      - "9110:9110"
+      - "9111:9111"
+    environment:
+      PRISM_ACTIVATION_GATEWAY_PORT: "9103"
+      PRISM_ACTIVATION_MODE: mock
+      PRISM_ACTIVATION_EMBEDDED_MOCKS: "1"
+      PRISM_MOCK_REDSHIFT_URL: http://127.0.0.1:9110
+      PRISM_MOCK_SNOWFLAKE_URL: http://127.0.0.1:9111
+      PRISM_DATA_ROOT: /data
+      PRISM_LAKEHOUSE_ROOT: /data/lakehouse
+      PRISM_ACTIVATION_GOLD_ROOT: /data/lakehouse/gold
+      PRISM_ACTIVATION_FIXTURE_GOLD: /app/activation-gateway/fixtures/gold
+      PRISM_ACTIVATION_ROUTING_PATH: /data/activation/routing.json
+    volumes:
+      - ./.data:/data
+      - ./activation-gateway/fixtures:/fixtures:ro
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request; urllib.request.urlopen('http://127.0.0.1:9103/health')",
         ]
       interval: 10s
       timeout: 3s

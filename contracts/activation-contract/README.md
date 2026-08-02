@@ -1,12 +1,32 @@
 # activation-contract
 
-**Status:** stub (Phase 0) — OpenAPI contract lands in Phase 4.
+Warehouse-agnostic **activate + query** OpenAPI contract — PRISM's namesake surface.
 
-Will define the warehouse-agnostic surface:
+> One gold table, split into many warehouses — like a prism splitting light.
 
-- Activate gold table X into warehouse Y
-- Query table X regardless of which warehouse currently serves it
+## Status
 
-Adapters (Redshift Serverless, Snowflake Horizon Catalog) implement this contract behind `activation-gateway/`.
+**Phase 4** — OpenAPI `1.0.0` + Pydantic models (`prism-activation-contract`).
 
-**Health / port:** N/A (contract package; gateway serves HTTP in Phase 4 on host `9103`).
+## Operations
+
+| Operation | Path | Purpose |
+|-----------|------|---------|
+| Activate | `POST /v1/activate` | Activate gold table X into warehouse Y |
+| Query | `POST /v1/query` | Query table X regardless of which warehouse serves it (`warehouse=auto`) |
+| Routing | `GET /v1/routing/{table}` | Inspect current warehouse routing |
+| Warehouses | `GET /v1/warehouses` | Adapter catalog |
+| Health | `GET /health` | Liveness |
+
+Canonical source: [`openapi.yaml`](./openapi.yaml) (also packaged under `prism_activation_contract`).
+
+## Consumers
+
+- `activation-gateway/` (implementer)
+- `control-plane/`, `cockpit/`, `ai-copilot/` (clients in later phases)
+
+## Install
+
+```bash
+pip install -e contracts/activation-contract
+```

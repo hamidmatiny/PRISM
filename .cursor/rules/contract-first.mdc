@@ -25,4 +25,4 @@ No service may consume, duplicate, or invent a schema that does not already exis
 
 - OpenAPI / JSON Schema / Pydantic models stay in sync in the same change.
 - Breaking contract changes require an ADR when they alter a cross-service boundary.
-- Stub READMEs in Phase 0 are placeholders; filled schemas land in the owning phase (1 / 3 / 4).
+- Stub READMEs in Phase 0 are placeholders; filled schemas land in the owning phase (telemetry/CV Phase 1, activation Phase 4).

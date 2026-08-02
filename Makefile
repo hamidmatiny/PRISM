@@ -2,7 +2,8 @@
 # ADR-001: no cloud apply targets here.
 
 .PHONY: help up down logs test lint fmt terraform-validate export-schemas \
-	lakehouse-run lakehouse-run-live dbt-build uc-validate phase1-check phase2-check phase3-check
+	lakehouse-run lakehouse-run-live dbt-build uc-validate \
+	phase1-check phase2-check phase3-check phase4-check
 
 help:
 	@echo "PRISM targets:"
@@ -19,6 +20,7 @@ help:
 	@echo "  make terraform-validate - validate aws + azure stacks (no apply)"
 	@echo "  make phase2-check       - lint + test + uc-validate + terraform-validate"
 	@echo "  make phase3-check       - lint + test + uc-validate + terraform-validate"
+	@echo "  make phase4-check       - lint + test + uc-validate + terraform-validate"
 
 up:
 	docker compose up -d --build
@@ -71,3 +73,5 @@ phase1-check: lint test terraform-validate
 phase2-check: lint test uc-validate terraform-validate
 
 phase3-check: lint test uc-validate terraform-validate
+
+phase4-check: lint test uc-validate terraform-validate

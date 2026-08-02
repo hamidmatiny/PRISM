@@ -24,9 +24,11 @@ pythonpath = [
   ".",
   "contracts/telemetry-schema/src",
   "contracts/cv-finding-schema/src",
+  "contracts/activation-contract/src",
   "ingestion/src",
   "lakehouse/src",
   "cv-service/src",
+  "activation-gateway/src",
 ]
 
 [tool.ruff]
@@ -47,7 +49,9 @@ select = ["E", "F", "I", "UP", "B"]
 known-first-party = [
   "prism_telemetry_schema",
   "prism_cv_finding_schema",
+  "prism_activation_contract",
   "prism_ingestion",
   "prism_lakehouse",
   "prism_cv_service",
+  "prism_activation_gateway",
 ]

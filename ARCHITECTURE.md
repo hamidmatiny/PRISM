@@ -57,7 +57,7 @@ Cross-service schemas live under `contracts/` and are imported, never copied:
 
 - `telemetry-schema` — `SensorPing` + `CameraFrameMetadata` (Pydantic + JSON Schema)
 - `cv-finding-schema` — `CvFinding` defect/anomaly findings (Pydantic + JSON Schema; emitter in Phase 3)
-- `activation-contract` — warehouse-agnostic activate/query OpenAPI (Phase 4)
+- `activation-contract` — warehouse-agnostic activate/query OpenAPI (`POST /v1/activate`, `POST /v1/query`)
 
 ## Ingestion path (Phase 1)
 
@@ -74,9 +74,20 @@ dbt Core models silver→gold for analytics tests (DuckDB in CI; Databricks SQL 
 Fleet frames → `cv-service` (OpenCV preprocess + ONNX YOLO-family, CPU) → schema-valid `CvFinding` records.  
 Findings with `confidence < threshold` land in `.data/cv-review-queue/pending/` for human review (Phase 5); higher-confidence findings publish under `.data/cv-findings/published/`. No GPU / paid vision APIs in CI (ADR-001).
 
+## Activation path (Phase 4)
+
+Gold parquet (S3 or local) → `activation-gateway` (`:9103`) behind `activation-contract`:
+
+- **Redshift adapter** — zero-ETL / auto-copy preferred; COPY from Parquet/Iceberg fallback → `materialized_copy`
+- **Snowflake adapter** — Iceberg REST / Horizon Catalog zero-copy against the **same** gold URI → `zero_copy` (no storage duplication)
+- **Routing registry** — `warehouse=auto` queries the current primary; callers may pin a warehouse for failover / conformance
+- **Conformance suite** — identical SQL against both mocked warehouse endpoints (`:9110` / `:9111`); assert equivalent results
+
+Why both warehouses: [ADR-002](docs/adr/002-multi-warehouse-activation.md).
+
 ## Cost safety
 
-See [ADR-001](docs/adr/001-cost-safety-policy.md). Local path uses Docker Compose + emulators (DuckDB, LocalStack, moto). CI validates Terraform; humans apply.
+See [ADR-001](docs/adr/001-cost-safety-policy.md). Local path uses Docker Compose + emulators (DuckDB, LocalStack, moto, mock warehouses). CI validates Terraform; humans apply.
 
 ## Build order
 

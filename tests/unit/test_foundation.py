@@ -34,10 +34,12 @@ REQUIRED_FILES = [
     "PHASE_1_COMPLETION.md",
     "PHASE_2_COMPLETION.md",
     "PHASE_3_COMPLETION.md",
+    "PHASE_4_COMPLETION.md",
     "docker-compose.yml",
     "Makefile",
     ".env.example",
     "docs/adr/001-cost-safety-policy.md",
+    "docs/adr/002-multi-warehouse-activation.md",
     ".cursor/rules/cost-safety.mdc",
     ".cursor/rules/contract-first.mdc",
     ".cursor/rules/monorepo.mdc",
@@ -47,6 +49,7 @@ REQUIRED_FILES = [
     "contracts/cv-finding-schema/README.md",
     "contracts/cv-finding-schema/schemas/cv_finding.schema.json",
     "contracts/activation-contract/openapi.yaml",
+    "contracts/activation-contract/src/prism_activation_contract/models.py",
     "ingestion/Dockerfile",
     "lakehouse/Dockerfile",
     "lakehouse/quality/expectations.yaml",
@@ -56,6 +59,9 @@ REQUIRED_FILES = [
     "cv-service/Dockerfile",
     "cv-service/models/yolo_fleet_defects_tiny.onnx",
     "cv-service/docs/LABELS.md",
+    "activation-gateway/Dockerfile",
+    "activation-gateway/fixtures/gold/asset_daily_metrics/part-000.parquet",
+    "tests/unit/test_activation_conformance.py",
 ]
 
 
