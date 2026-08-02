@@ -7,8 +7,11 @@ defs, and Unity Catalog bootstrap.
 |---|---|
 | **Port** | N/A (batch job) |
 | **Local** | `python -m prism_lakehouse` (Spark `local[*]`) |
-| **Docker** | `docker compose --profile lakehouse run --rm lakehouse-fixtures` |
+| **Docker (live bronze)** | `docker compose --profile lakehouse run --rm lakehouse` — reads `./.data/bronze` written by ingestion |
+| **Docker (fixtures only)** | `docker compose --profile lakehouse run --rm lakehouse-fixtures` — CI/offline; not the ingest path |
 | **Databricks** | `jobs/databricks_job_medallion.json` + `lakeflow/` (manual apply, ADR-001) |
+
+**Data path contract:** host `./.data` is bind-mounted as `/data` for both `ingestion` and `lakehouse`. Do not assume a Docker named volume holds bronze separately from the host.
 
 ## Layout
 

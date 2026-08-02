@@ -3,40 +3,69 @@
 **Date:** 2026-08-01  
 **Status:** Complete (awaiting human go-ahead before Phase 3)
 
+## Direct answer: what bronze did verification use?
+
+**Initially (first Phase 2 push): synthetic fixtures** — `lakehouse/fixtures/bronze` via `lakehouse-fixtures` / `make lakehouse-run`. That did **not** prove ingest → lakehouse wiring.
+
+**After this follow-up: live Phase 1 ingestion bronze** — `PRISM_INGEST_BACKEND=localstack docker compose --profile localstack up -d --build`, Hive-partitioned landings under host `./.data/bronze/.../dt=2026-08-02/device=PRISM-DEV-*/`, then:
+
+```bash
+docker compose --profile lakehouse run --rm lakehouse   # reads /data/bronze (= ./.data/bronze)
+cd dbt && DBT_PROFILES_DIR=$PWD dbt build --target duckdb
+```
+
+Evidence this was not fixtures:
+
+| Source | `dt=` partition | Silver row counts |
+|--------|-----------------|-------------------|
+| Fixtures | `2026-08-01` (3 pings / 2 frames) | would be 3 / 2 |
+| Live ingest (this run) | `2026-08-02` | **66** sensor / **36** camera; dbt `PASS=31` |
+
+Backend stayed `localstack` through the lakehouse run (pinned via `.env`).
+
+## Path gap found (and fixed)
+
+**Previously:** ingestion wrote to a Docker **named volume** (`prism_prism-data`), while host Spark/dbt and `lakehouse-fixtures` used `./.data` or `./lakehouse/fixtures`. Those were **not** the same bronze path — easy to “verify” lakehouse without ever reading container-written bronze.
+
+**Now:** compose bind-mounts `./.data:/data` for `ingestion` and `lakehouse`. Contract:
+
+| Path | Role |
+|------|------|
+| `./.data/bronze` | Ingestion Hive landings (`dt=` / `device=`) |
+| `./.data/lakehouse` | Silver/gold parquet from medallion |
+| `lakehouse/fixtures/bronze` | CI/offline only (`lakehouse-fixtures` profile) |
+
 ## What shipped
 
 ### Lakehouse (PySpark)
 
-- `lakehouse/src/prism_lakehouse` — bronze → silver → gold transforms for Spark `local[*]` and Databricks jobs.
+- `lakehouse/src/prism_lakehouse` — bronze → silver → gold for Spark `local[*]` and Databricks jobs.
 - CLI: `python -m prism_lakehouse --bronze-root … --warehouse-root …`
 - Databricks job stub: `lakehouse/jobs/databricks_job_medallion.json` (manual apply, ADR-001).
-- Fixture bronze under `lakehouse/fixtures/bronze/` for CI / local runs.
-- Docker image + compose profile `lakehouse` (`lakehouse-fixtures` one-shot).
+- Fixture bronze under `lakehouse/fixtures/bronze/` for CI unit tests only.
+- Compose: shared `./.data` + `lakehouse` (live) / `lakehouse-fixtures` (synthetic) profiles.
 
 ### Expectations & Unity Catalog
 
 - Canonical DQ manifest: `lakehouse/quality/expectations.yaml` (mirrored into package data).
-- Expectations projected to Unity Catalog **table properties** (`quality.expectation.*`) via generated `lakehouse/unity_catalog/bootstrap.sql`.
-- Lakeflow Declarative Pipeline config `lakeflow/prism_medallion.yml` + notebook reference property keys (validated in CI — no apply).
-- `validate_bootstrap.py` structurally checks bootstrap SQL, grants, Lakeflow key parity, job cost-safety tag.
+- Expectations → Unity Catalog **table properties** (`quality.expectation.*`) via `unity_catalog/bootstrap.sql`.
+- Lakeflow config/notebook reference those property keys; CI validates structurally (no apply).
 
 ### dbt Core
 
-- Project under `dbt/` with DuckDB target for CI/local and `profiles.databricks.yml.example` for real SQL warehouse runs.
-- Models: `stg_sensor_pings`, `stg_camera_frames`, `dim_assets`, `fct_asset_daily_metrics`, `fct_fleet_frame_summary`.
-- Tests: `not_null`, custom `accepted_range`, `relationships`.
-- `dbt docs generate` produces `dbt/target/` catalog.
-- `dbt/docs/dbt-cloud-path.md` documents Cloud environments, scheduling, and Mesh considerations (no paid Cloud account).
+- DuckDB CI/local target; `profiles.databricks.yml.example` for real SQL warehouse runs.
+- Models + `not_null` / `accepted_range` / `relationships` tests.
+- `dbt/docs/dbt-cloud-path.md` (Cloud scheduling / Mesh — no paid account).
 
 ## Verified in this environment
 
 | Check | Result |
 |-------|--------|
-| `make phase2-check` (lint + unit tests + UC validate + terraform validate) | Green |
-| Local Spark medallion on fixtures | `silver.sensor_pings=3`, `camera_frames=2`, gold rows written |
-| `dbt build --target duckdb` | **PASS=31** (5 models + 26 tests) |
-| `dbt docs generate` | `dbt/target/catalog.json` written |
-| `docker compose --profile lakehouse run --rm --build lakehouse-fixtures` | `status=ok` counts silver 3/2, gold 2/2 |
+| `make phase2-check` | Green (unit tests include fixture-based Spark test) |
+| Live LocalStack ingest → host `./.data/bronze` | Hive `dt=2026-08-02/device=…` files present |
+| `docker compose --profile lakehouse run --rm lakehouse` on that bronze | silver 66 / 36, gold 3 / 3 |
+| `dbt build --target duckdb` on that warehouse | **PASS=31** |
+| Fixture path | Still available for CI; **not** what the live e2e used |
 
 ## Deferred
 
@@ -47,16 +76,18 @@
 | CV findings in silver/gold | Phase 3 |
 | Activation of gold into Redshift/Snowflake | Phase 4 |
 
-## How to verify
+## How to verify (live ingest path)
 
 ```bash
-export JAVA_HOME=/opt/homebrew/opt/openjdk@21   # or system JDK 17+
-export PATH="$JAVA_HOME/bin:$PATH"
-pip install -e lakehouse 'dbt-core>=1.8' 'dbt-duckdb>=1.8'
-make phase2-check
-make lakehouse-run
-make dbt-build
-docker compose --profile lakehouse run --rm --build lakehouse-fixtures
+# pin backend so lakehouse profile does not recreate ingestion as file
+echo 'PRISM_INGEST_BACKEND=localstack' >> .env
+
+PRISM_INGEST_BACKEND=localstack docker compose --profile localstack up -d --build
+curl -s http://localhost:9105/health   # backend=localstack, accepted > 0
+find .data/bronze -path '*/dt=*/*' | head
+
+docker compose --profile lakehouse run --rm lakehouse
+cd dbt && DBT_PROFILES_DIR=$PWD dbt build --target duckdb
 ```
 
 ## Stop

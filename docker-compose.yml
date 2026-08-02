@@ -5,9 +5,16 @@
 # Host port range: 9100–9199 (see .cursor/rules/monorepo.mdc)
 #
 # Optional LocalStack Kinesis:
-#   PRISM_INGEST_BACKEND=localstack docker compose --profile localstack up
-# One-shot lakehouse transform (Spark local in container):
+#   PRISM_INGEST_BACKEND=localstack docker compose --profile localstack up -d --build
+# Medallion over *ingestion-written* bronze (same host path .data/):
 #   docker compose --profile lakehouse run --rm lakehouse
+#
+# Data path contract (local-first): host `./.data` == container `/data`
+#   /data/bronze     ← ingestion Hive landings (dt=/device=)
+#   /data/lakehouse  ← lakehouse silver/gold parquet
+#   /data/kinesis    ← file-backend stream shim (when backend=file)
+# Fixture-only CI path (synthetic bronze, not live ingest):
+#   docker compose --profile lakehouse run --rm lakehouse-fixtures
 
 name: prism
 
@@ -46,7 +53,8 @@ services:
       AWS_ACCESS_KEY_ID: test
       AWS_SECRET_ACCESS_KEY: test
     volumes:
-      - prism-data:/data
+      # Bind mount so host dbt/Spark and containers share one bronze zone.
+      - ./.data:/data
     healthcheck:
       test:
         [
@@ -60,7 +68,7 @@ services:
       retries: 5
       start_period: 15s
 
-  # Phase 2 — Spark local medallion over bronze in the shared volume.
+  # Phase 2 — Spark local medallion over ingestion-written bronze at /data/bronze.
   lakehouse:
     profiles: ["lakehouse"]
     build:
@@ -71,12 +79,22 @@ services:
       ingestion:
         condition: service_healthy
     volumes:
-      - prism-data:/data
+      - ./.data:/data
     environment:
       PRISM_BRONZE_ROOT: /data/bronze
       PRISM_WAREHOUSE_ROOT: /data/lakehouse
+    command:
+      [
+        "python",
+        "-m",
+        "prism_lakehouse",
+        "--bronze-root",
+        "/data/bronze",
+        "--warehouse-root",
+        "/data/lakehouse",
+      ]
 
-  # Fixture-based medallion (no dependency on live ingestion data).
+  # Synthetic bronze only — CI / offline; does NOT prove ingest→lakehouse wiring.
   lakehouse-fixtures:
     profiles: ["lakehouse"]
     build:
@@ -85,7 +103,7 @@ services:
     container_name: prism-lakehouse-fixtures
     volumes:
       - ./lakehouse/fixtures/bronze:/data/bronze:ro
-      - ./.data/lakehouse:/data/lakehouse
+      - ./.data/lakehouse-from-fixtures:/data/lakehouse
     command:
       [
         "python",
@@ -110,5 +128,4 @@ services:
       - localstack-data:/var/lib/localstack
 
 volumes:
-  prism-data:
   localstack-data:

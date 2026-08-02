@@ -2,7 +2,7 @@
 # ADR-001: no cloud apply targets here.
 
 .PHONY: help up down logs test lint fmt terraform-validate export-schemas \
-	lakehouse-run dbt-build uc-validate phase1-check phase2-check
+	lakehouse-run lakehouse-run-live dbt-build uc-validate phase1-check phase2-check
 
 help:
 	@echo "PRISM targets:"
@@ -43,9 +43,13 @@ export-schemas:
 	python -m prism_cv_finding_schema.export
 
 lakehouse-run:
+	@echo "NOTE: fixture bronze (CI). For live ingest bronze use: docker compose --profile lakehouse run --rm lakehouse"
 	python -m prism_lakehouse \
 		--bronze-root lakehouse/fixtures/bronze \
-		--warehouse-root .data/lakehouse
+		--warehouse-root .data/lakehouse-from-fixtures
+
+lakehouse-run-live:
+	docker compose --profile lakehouse run --rm lakehouse
 
 dbt-build:
 	cd dbt && DBT_PROFILES_DIR=$$PWD dbt build --target duckdb
