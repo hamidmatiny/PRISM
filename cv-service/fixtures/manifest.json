@@ -1,0 +1,29 @@
+{
+  "fixtures": [
+    {
+      "file": "images/dent_sample.png",
+      "intended_label": "dent",
+      "note": "Synthetic fixture for structural tests \u2014 not a ground-truth accuracy set"
+    },
+    {
+      "file": "images/crack_sample.png",
+      "intended_label": "crack",
+      "note": "Synthetic fixture for structural tests \u2014 not a ground-truth accuracy set"
+    },
+    {
+      "file": "images/tire_wear_sample.png",
+      "intended_label": "tire_wear",
+      "note": "Synthetic fixture for structural tests \u2014 not a ground-truth accuracy set"
+    },
+    {
+      "file": "images/sensor_obstruction_sample.png",
+      "intended_label": "sensor_obstruction",
+      "note": "Synthetic fixture for structural tests \u2014 not a ground-truth accuracy set"
+    },
+    {
+      "file": "images/anomaly_sample.png",
+      "intended_label": "anomaly",
+      "note": "Synthetic fixture for structural tests \u2014 not a ground-truth accuracy set"
+    }
+  ]
+}

@@ -26,6 +26,7 @@ pythonpath = [
   "contracts/cv-finding-schema/src",
   "ingestion/src",
   "lakehouse/src",
+  "cv-service/src",
 ]
 
 [tool.ruff]
@@ -48,4 +49,5 @@ known-first-party = [
   "prism_cv_finding_schema",
   "prism_ingestion",
   "prism_lakehouse",
+  "prism_cv_service",
 ]

@@ -69,6 +69,11 @@ Bronze JSON → PySpark silver (typed, expectation-filtered, deduped) → gold a
 Data-quality expectations live in `lakehouse/quality/expectations.yaml` and are applied as Unity Catalog table properties (`quality.expectation.*`) via `unity_catalog/bootstrap.sql` (manual workspace apply). Lakeflow Declarative Pipelines reference those property keys.  
 dbt Core models silver→gold for analytics tests (DuckDB in CI; Databricks SQL warehouse profile documented for real runs).
 
+## Computer vision path (Phase 3)
+
+Fleet frames → `cv-service` (OpenCV preprocess + ONNX YOLO-family, CPU) → schema-valid `CvFinding` records.  
+Findings with `confidence < threshold` land in `.data/cv-review-queue/pending/` for human review (Phase 5); higher-confidence findings publish under `.data/cv-findings/published/`. No GPU / paid vision APIs in CI (ADR-001).
+
 ## Cost safety
 
 See [ADR-001](docs/adr/001-cost-safety-policy.md). Local path uses Docker Compose + emulators (DuckDB, LocalStack, moto). CI validates Terraform; humans apply.

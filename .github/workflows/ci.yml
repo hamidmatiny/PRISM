@@ -54,10 +54,12 @@ jobs:
         run: |
           pip install --upgrade pip
           pip install pytest ruff pydantic pyyaml "pyspark>=3.5" "dbt-core>=1.8" "dbt-duckdb>=1.8"
+          pip install "onnxruntime>=1.17" "opencv-python-headless>=4.8" "numpy>=1.26" "fastapi>=0.110" "uvicorn>=0.27" "python-multipart" "httpx>=0.27"
           pip install -e contracts/telemetry-schema
           pip install -e contracts/cv-finding-schema
           pip install -e ingestion
           pip install -e lakehouse
+          pip install -e cv-service
 
       - name: Unity Catalog bootstrap structural validation
         run: |

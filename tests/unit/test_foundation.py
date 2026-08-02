@@ -33,6 +33,7 @@ REQUIRED_FILES = [
     "PHASE_0_COMPLETION.md",
     "PHASE_1_COMPLETION.md",
     "PHASE_2_COMPLETION.md",
+    "PHASE_3_COMPLETION.md",
     "docker-compose.yml",
     "Makefile",
     ".env.example",
@@ -52,6 +53,9 @@ REQUIRED_FILES = [
     "lakehouse/unity_catalog/bootstrap.sql",
     "dbt/dbt_project.yml",
     "dbt/docs/dbt-cloud-path.md",
+    "cv-service/Dockerfile",
+    "cv-service/models/yolo_fleet_defects_tiny.onnx",
+    "cv-service/docs/LABELS.md",
 ]
 
 

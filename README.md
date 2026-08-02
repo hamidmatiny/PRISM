@@ -13,7 +13,7 @@ PRISM ingests fleet camera + sensor telemetry, runs computer-vision defect/anoma
 | 0 | Foundation | Complete — see `PHASE_0_COMPLETION.md` |
 | 1 | Ingestion & contracts | Complete — see `PHASE_1_COMPLETION.md` |
 | 2 | Lakehouse core | Complete — see `PHASE_2_COMPLETION.md` |
-| 3 | Computer vision service | Not started |
+| 3 | Computer vision service | Complete — see `PHASE_3_COMPLETION.md` |
 | 4 | Activation gateway | Not started |
 | 5 | Control plane | Not started |
 | 6 | AWS platform | Not started |
@@ -23,23 +23,20 @@ PRISM ingests fleet camera + sensor telemetry, runs computer-vision defect/anoma
 | 10 | Observability & security | Not started |
 | 11 | Productionization & demo | Not started |
 
-## Quick start (Phase 2)
+## Quick start (Phase 3)
 
 ```bash
 cp .env.example .env
 python3 -m venv .venv && source .venv/bin/activate
-export JAVA_HOME=${JAVA_HOME:-/opt/homebrew/opt/openjdk@21}
-export PATH="$JAVA_HOME/bin:$PATH"
-pip install pytest ruff pydantic pyyaml 'pyspark>=3.5' 'dbt-core>=1.8' 'dbt-duckdb>=1.8'
-pip install -e contracts/telemetry-schema -e contracts/cv-finding-schema -e ingestion -e lakehouse
-make up                 # stub :9199 + ingestion :9105
-make lakehouse-run      # Spark local medallion → .data/lakehouse
-make dbt-build          # DuckDB models + tests + docs
-make phase2-check
+pip install -e contracts/cv-finding-schema -e cv-service
+docker compose up -d --build cv-service
+curl -s http://localhost:9102/health
+curl -s -F asset_id=PRISM-AST-001 -F frame_ref=frm_abcdef123456 \
+  -F file=@cv-service/fixtures/images/dent_sample.png \
+  http://localhost:9102/v1/detect
 ```
 
-No cloud credentials required ([ADR-001](docs/adr/001-cost-safety-policy.md)).
-Optional: `docker compose --profile lakehouse run --rm lakehouse-fixtures`.
+No cloud credentials / GPU required ([ADR-001](docs/adr/001-cost-safety-policy.md)).
 
 ## Monorepo layout
 
@@ -49,7 +46,7 @@ prism/
 ├── .github/workflows/          # CI: lint, test, terraform validate/tflint/checkov
 ├── contracts/                  # Shared schemas (telemetry + CV finding live)
 ├── ingestion/                  # Simulator + producer + bronze landing
-├── cv-service/                 # Phase 3
+├── cv-service/                 # OpenCV + ONNX YOLO defects (CPU)
 ├── lakehouse/                  # PySpark medallion + Lakeflow + UC bootstrap
 ├── dbt/                        # dbt Core silver→gold (DuckDB CI)
 ├── activation-gateway/         # Phase 4
@@ -73,7 +70,7 @@ PRISM owns **9100–9199** (avoids Argus / Vulcan on shared laptops).
 |------|---------|
 | 9100 | control-plane |
 | 9101 | cockpit |
-| 9102 | cv-service |
+| 9102 | cv-service (live) |
 | 9103 | activation-gateway |
 | 9104 | ai-copilot |
 | 9105 | ingestion |
@@ -95,3 +92,4 @@ PRISM owns **9100–9199** (avoids Argus / Vulcan on shared laptops).
 - [Phase 0 completion](PHASE_0_COMPLETION.md)
 - [Phase 1 completion](PHASE_1_COMPLETION.md)
 - [Phase 2 completion](PHASE_2_COMPLETION.md)
+- [Phase 3 completion](PHASE_3_COMPLETION.md)

@@ -1,5 +1,5 @@
 # PRISM local development stack
-# Phase 2: foundation stub + ingestion + optional lakehouse medallion job.
+# Phase 3: foundation stub + ingestion + cv-service; optional lakehouse / LocalStack.
 # ADR-001: zero cloud credentials required for `docker compose up`.
 #
 # Host port range: 9100–9199 (see .cursor/rules/monorepo.mdc)
@@ -10,9 +10,10 @@
 #   docker compose --profile lakehouse run --rm lakehouse
 #
 # Data path contract (local-first): host `./.data` == container `/data`
-#   /data/bronze     ← ingestion Hive landings (dt=/device=)
-#   /data/lakehouse  ← lakehouse silver/gold parquet
-#   /data/kinesis    ← file-backend stream shim (when backend=file)
+#   /data/bronze              ← ingestion Hive landings (dt=/device=)
+#   /data/lakehouse           ← lakehouse silver/gold parquet
+#   /data/cv-review-queue     ← low-confidence CV findings (Phase 5)
+#   /data/cv-findings         ← auto-published high-confidence findings
 # Fixture-only CI path (synthetic bronze, not live ingest):
 #   docker compose --profile lakehouse run --rm lakehouse-fixtures
 
@@ -67,6 +68,36 @@ services:
       timeout: 3s
       retries: 5
       start_period: 15s
+
+  # Phase 3 — OpenCV + ONNX YOLO-family defect detection (CPU only).
+  cv-service:
+    build:
+      context: .
+      dockerfile: cv-service/Dockerfile
+    container_name: prism-cv-service
+    ports:
+      - "9102:9102"
+    environment:
+      PRISM_CV_SERVICE_PORT: "9102"
+      PRISM_DATA_ROOT: /data
+      PRISM_CV_CONFIDENCE_THRESHOLD: ${PRISM_CV_CONFIDENCE_THRESHOLD:-0.55}
+      PRISM_CV_MODEL_PATH: /app/cv-service/models/yolo_fleet_defects_tiny.onnx
+      PRISM_CV_LABELS_PATH: /app/cv-service/models/labels.json
+    volumes:
+      - ./.data:/data
+      - ./cv-service/fixtures:/fixtures:ro
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request; urllib.request.urlopen('http://127.0.0.1:9102/health')",
+        ]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 25s
 
   # Phase 2 — Spark local medallion over ingestion-written bronze at /data/bronze.
   lakehouse:

@@ -1,0 +1,12 @@
+{
+  "model_id": "yolo-fleet-defects-tiny",
+  "input_size": [320, 320],
+  "classes": [
+    {"id": 0, "name": "dent"},
+    {"id": 1, "name": "crack"},
+    {"id": 2, "name": "tire_wear"},
+    {"id": 3, "name": "sensor_obstruction"},
+    {"id": 4, "name": "anomaly"}
+  ],
+  "notes": "CPU-dev tiny ONNX. Structural/CI use only — not a production accuracy claim (ADR-001)."
+}
