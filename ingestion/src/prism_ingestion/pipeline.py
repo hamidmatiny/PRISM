@@ -28,6 +28,7 @@ class PipelineStats:
     camera_frames: int = 0
     last_error: str | None = None
     running: bool = False
+    by_corruption_type: dict[str, int] = field(default_factory=dict)
 
     def as_dict(self) -> dict[str, Any]:
         return {
@@ -39,6 +40,7 @@ class PipelineStats:
             "camera_frames": self.camera_frames,
             "last_error": self.last_error,
             "running": self.running,
+            "by_corruption_type": dict(self.by_corruption_type),
         }
 
 
@@ -115,20 +117,29 @@ class IngestPipeline:
                 span.set_attribute("prism.event_kind", kind)
                 span.set_attribute("prism.source_mode", self.config.source_mode)
 
-            ok, cleaned, error = validate_event(kind, payload)
-            if not ok:
+            result = validate_event(kind, payload)
+            if not result.ok:
                 self.stats.rejected += 1
-                self.stats.last_error = error
+                self.stats.last_error = result.reason
+                corruption_type = result.corruption_type or "schema_validation"
+                self.stats.by_corruption_type[corruption_type] = (
+                    self.stats.by_corruption_type.get(corruption_type, 0) + 1
+                )
                 write_dlq_record(
                     self.config.dlq_root,
                     payload,
-                    reason=error or "validation_failed",
+                    reason=result.reason or "validation_failed",
                     kind=kind,
+                    corruption_type=result.corruption_type,
+                    gate=result.gate,
                 )
                 if span is not None:
                     span.set_attribute("prism.accepted", False)
+                    span.set_attribute("prism.corruption_type", corruption_type)
+                    span.set_attribute("prism.rejection_gate", result.gate or "unknown")
                 return False
 
+            cleaned = result.cleaned
             partition_key = str(cleaned.get("asset_id", "unknown"))
             self.producer.put_record(partition_key=partition_key, data=cleaned)
             device_id = str(cleaned.get("device_id", "unknown"))

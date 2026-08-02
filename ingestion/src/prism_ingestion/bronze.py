@@ -48,14 +48,26 @@ def write_dlq_record(
     *,
     reason: str,
     kind: str,
+    corruption_type: str | None = None,
+    gate: str | None = None,
 ) -> Path:
+    """Write one rejected event to the DLQ.
+
+    ``reason`` stays the human-readable pydantic/pandera message (unchanged
+    shape for anything already reading it). ``corruption_type`` (Phase 13) is
+    a stable enum across runs — see ``corruption.py`` — and ``gate`` records
+    which of the two validation layers rejected the record
+    (``"structural"`` | ``"contract"``), so a DLQ reader never has to guess.
+    """
     dt = datetime.now(tz=UTC).strftime("%Y-%m-%d")
     partition = dlq_root / f"dt={dt}" / f"kind={kind}"
     partition.mkdir(parents=True, exist_ok=True)
     path = partition / f"{uuid.uuid4().hex}.json"
     envelope = {
         "rejected_at": datetime.now(tz=UTC).isoformat().replace("+00:00", "Z"),
-        "reason": reason,
+        "rejection_reason": reason,
+        "corruption_type": corruption_type,
+        "gate": gate,
         "kind": kind,
         "record": record,
     }

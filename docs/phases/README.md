@@ -2,6 +2,10 @@
 
 Zero-padded for sort order. One file per phase.
 
+Standard from Phase 13 onward: every completion doc includes a **"Verify it
+yourself"** section with exact, copy-pasteable commands and the expected
+output/exit state for each — not prose describing what was tested.
+
 | Phase | Document |
 |------:|----------|
 | 0 | [PHASE_00_COMPLETION.md](PHASE_00_COMPLETION.md) |
@@ -17,6 +21,7 @@ Zero-padded for sort order. One file per phase.
 | 10 | [PHASE_10_COMPLETION.md](PHASE_10_COMPLETION.md) |
 | 11 | [PHASE_11_COMPLETION.md](PHASE_11_COMPLETION.md) |
 | 12 | [PHASE_12_COMPLETION.md](PHASE_12_COMPLETION.md) |
+| 13 | [PHASE_13_COMPLETION.md](PHASE_13_COMPLETION.md) |
 
 - **v1.0.0** — Phases 0–11 close-out  
 - **v1.1.0** — Phases 12–15 (in progress) — see [RELEASE_PLAN.md](../RELEASE_PLAN.md)

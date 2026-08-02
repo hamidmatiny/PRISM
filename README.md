@@ -54,6 +54,28 @@ Go from a fresh clone to a working digital-twin demo in your browser in under fi
 
 No cloud credentials are required ([ADR-001](docs/adr/001-cost-safety-policy.md)). Longer talk track: [docs/DEMO_SCRIPT.md](docs/DEMO_SCRIPT.md). Optional proof after the demo is up: `PRISM_E2E=1 pytest -q tests/e2e -m e2e`.
 
+### Local (non-Docker) test setup
+
+`make demo` above is the fastest path to a working system and needs nothing but Docker. Running the Python unit suite (`make test`) *outside* Docker — e.g. to iterate on a single service — needs a real local Python environment, which the quick start above intentionally does not require. If you only ever use `make demo`, skip this section.
+
+Prerequisites:
+
+- **Python 3.12+** (`python3.12 -V`). `make setup` installs everything into whatever `python`/`pip` is first on your `PATH`, so activate a 3.12 virtualenv first — don't let it fall through to your OS's default Python.
+- **Java 17** — needed only to *launch* a local Spark session for one lakehouse test (`test_medallion_local_spark`). PySpark itself imports fine without Java; only starting the JVM gateway needs it. CI always has Java via `actions/setup-java`. Without it locally, that one test skips cleanly instead of failing (Phase 13). To install: `brew install openjdk@17 && sudo ln -sfn $(brew --prefix openjdk@17)/libexec/openjdk.jdk /Library/Java/JavaVirtualMachines/openjdk-17.jdk` (macOS/Homebrew) or your OS's Temurin 17 package.
+- **Node 22+** — only needed for `make cockpit-build` / `make phase8-check` and later phase-check targets that build the cockpit.
+
+Setup:
+
+```bash
+python3.12 -m venv .venv
+source .venv/bin/activate
+make setup   # installs requirements-dev.txt + editable installs of every service (mirrors CI exactly)
+make lint
+make test    # expect: all tests pass (or a clean skip if Java 17 isn't installed)
+```
+
+`requirements-dev.txt` is generated to exactly match `.github/workflows/ci.yml`'s "Install packages + test deps" step, so `make setup` and CI never quietly drift apart.
+
 ---
 
 PRISM ingests fleet camera + sensor telemetry, runs computer-vision defect/anomaly detection, lands governed gold data in a Databricks lakehouse (dbt-modeled), and fans that same gold layer out to Redshift and Snowflake through one activation contract — surfaced in a Django control plane and a Vue 3 + Three.js digital-twin cockpit, with a tool-grounded AI copilot over live warehouse data.
@@ -77,6 +99,7 @@ PRISM ingests fleet camera + sensor telemetry, runs computer-vision defect/anoma
 | 10 | Observability & security | Complete — see [`docs/phases/PHASE_10_COMPLETION.md`](docs/phases/PHASE_10_COMPLETION.md) |
 | 11 | Productionization & demo | Complete — see [`docs/phases/PHASE_11_COMPLETION.md`](docs/phases/PHASE_11_COMPLETION.md) |
 | 12 | Scenario engine (chaos) | Complete — see [`docs/phases/PHASE_12_COMPLETION.md`](docs/phases/PHASE_12_COMPLETION.md) |
+| 13 | Two-layer validation hardening | Complete — see [`docs/phases/PHASE_13_COMPLETION.md`](docs/phases/PHASE_13_COMPLETION.md) |
 
 ## Monorepo layout
 
@@ -136,6 +159,6 @@ PRISM owns **9100–9199** (avoids Argus / Vulcan on shared laptops).
 - [ADRs](docs/adr/index.md) (001–005)
 - [Demo script](docs/DEMO_SCRIPT.md) (Phase 11)
 - [Runbooks](docs/runbooks/README.md) · [Security reviews](docs/security/iam-least-privilege-audit.md)
-- [Phase completions](docs/phases/README.md) (00–12)
+- [Phase completions](docs/phases/README.md) (00–13)
 - [Release plan](docs/RELEASE_PLAN.md) · [Packaging plan](docs/PACKAGING_PLAN.md) · [Changelog](CHANGELOG.md)
 - [LICENSE](LICENSE) (Apache-2.0)

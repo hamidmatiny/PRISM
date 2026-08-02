@@ -1,0 +1,31 @@
+# Local (non-Docker) dev/test dependencies — mirrors the "Install packages +
+# test deps" step of .github/workflows/ci.yml's `test` job exactly, so a
+# clean local `make setup` and CI never drift apart. See README.md's
+# "Local (non-Docker) test setup" section for prerequisites (Python >=3.12,
+# a local JVM for the one Spark-backed test — see there for why).
+#
+# Editable installs of PRISM's own packages (prism-ingestion, prism-lakehouse,
+# etc.) are NOT listed here; `make setup` installs those separately with
+# `pip install -e <dir>` for every service, same as CI.
+
+pytest>=8.0
+ruff>=0.6
+pydantic>=2.8
+pyyaml>=6.0
+pyspark>=3.5
+dbt-core>=1.8
+dbt-duckdb>=1.8
+onnxruntime>=1.17
+opencv-python-headless>=4.8
+numpy>=1.26
+fastapi>=0.110
+uvicorn>=0.27
+python-multipart
+httpx>=0.27
+duckdb>=1.0
+django>=5.0,<6
+django-ninja>=1.3
+django-q2>=1.6
+dj-database-url>=2.1
+psycopg[binary]>=3.1
+pytest-django

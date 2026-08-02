@@ -1,17 +1,18 @@
 # PRISM — local developer entrypoints
 # ADR-001: no cloud apply targets here.
 
-.PHONY: help up down logs test lint fmt terraform-validate terraform-aws-plan \
+.PHONY: help setup up down logs test lint fmt terraform-validate terraform-aws-plan \
 	checkov-aws checkov-azure tflint-aws tflint-azure export-schemas \
 	lakehouse-run lakehouse-run-live dbt-build uc-validate \
 	phase1-check phase2-check phase3-check phase4-check phase5-check \
 	phase6-check phase7-check phase8-check phase9-check phase10-check \
-	phase11-check phase12-check cockpit-build demo e2e
+	phase11-check phase12-check phase13-check cockpit-build demo e2e
 
 CHECKOV_VERSION := $(shell tr -d '[:space:]' < infra/terraform/CHECKOV_VERSION)
 
 help:
 	@echo "PRISM targets:"
+	@echo "  make setup              - local (non-Docker) dev env: deps + editable installs"
 	@echo "  make up                 - docker compose up (local, zero cloud creds)"
 	@echo "  make down               - docker compose down"
 	@echo "  make logs               - follow compose logs"
@@ -38,6 +39,27 @@ help:
 	@echo "  make e2e                - live golden-path (requires make demo)"
 	@echo "  make phase11-check      - lint + unit tests + cockpit + terraform gates"
 	@echo "  make phase12-check      - lint + unit tests (scenario-engine + ADR-005)"
+	@echo "  make phase13-check      - lint + unit tests (two-layer validation hardening)"
+
+setup:
+	@echo "Installing dev/test deps (mirrors CI's test job exactly — see requirements-dev.txt)"
+	python -m pip install --upgrade pip
+	python -m pip install -r requirements-dev.txt
+	python -m pip install -e contracts/telemetry-schema
+	python -m pip install -e contracts/cv-finding-schema
+	python -m pip install -e contracts/activation-contract
+	python -m pip install -e ingestion
+	python -m pip install -e scenario-engine
+	python -m pip install -e lakehouse
+	python -m pip install -e cv-service
+	python -m pip install -e activation-gateway
+	python -m pip install -e control-plane
+	python -m pip install -e ai-copilot
+	python -m pip install -e observability/otel
+	@echo ""
+	@echo "Done. Java 17 is a separate, manual prerequisite for the one Spark-backed"
+	@echo "unit test (test_medallion_local_spark) -- see README 'Local (non-Docker)"
+	@echo "test setup'. Everything else in \"make test\" runs without it."
 
 up:
 	docker compose up -d --build
@@ -152,3 +174,5 @@ phase10-check: lint test terraform-validate checkov-aws
 phase11-check: lint test cockpit-build terraform-validate tflint-aws tflint-azure checkov-aws checkov-azure
 
 phase12-check: lint test
+
+phase13-check: lint test

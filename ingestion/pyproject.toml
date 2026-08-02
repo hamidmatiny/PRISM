@@ -12,6 +12,7 @@ dependencies = [
   "pydantic>=2.8",
   "httpx>=0.27",
   "prism-telemetry-schema",
+  "pandera[pandas]>=0.20",
 ]
 
 [project.optional-dependencies]
