@@ -71,6 +71,10 @@ Accepted bronze record carries synthetic labels:
 
 DLQ records from corrupt outcomes retain labels (`sensor_corrupt`, `contract_violation`).
 
+## CI
+
+https://github.com/hamidmatiny/PRISM/actions/runs/30752260957 (success on `28ff03a`)
+
 ## Stop
 
 Phase 12 complete. **Do not start Phase 13** without explicit go-ahead.
