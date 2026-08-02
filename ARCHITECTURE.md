@@ -107,6 +107,15 @@ Terraform under `infra/terraform/aws/` (validate / tflint / checkov / plan only 
 
 Local `docker compose` remains the day-to-day path; Terraform does not replace it.
 
+## Azure DR path (Phase 7)
+
+Warm-standby Terraform under `infra/terraform/azure/` (validate / tflint / checkov only — never apply in CI):
+
+- ADLS Gen2 lakehouse mirror (bronze / silver / gold containers, LRS)
+- Azure Databricks workspace + scheduled S3→ADLS replication job (**RPO ≈ 15m**, **RTO ≈ 4h** manual)
+- Failover runbook for repointing activation-gateway at `abfss://` gold ([azure-dr-failover.md](docs/runbooks/azure-dr-failover.md))
+- Tradeoff: [ADR-003](docs/adr/003-azure-dr-two-cloud-tradeoff.md) — two-cloud cost vs DR benefit (honest, not oversold)
+
 ## Cost safety
 
 See [ADR-001](docs/adr/001-cost-safety-policy.md). Local path uses Docker Compose + emulators (DuckDB, LocalStack, moto, mock warehouses, SQLite). CI validates Terraform and uploads a reviewable AWS plan artifact; humans apply.

@@ -37,11 +37,14 @@ REQUIRED_FILES = [
     "PHASE_4_COMPLETION.md",
     "PHASE_5_COMPLETION.md",
     "PHASE_6_COMPLETION.md",
+    "PHASE_7_COMPLETION.md",
     "docker-compose.yml",
     "Makefile",
     ".env.example",
     "docs/adr/001-cost-safety-policy.md",
     "docs/adr/002-multi-warehouse-activation.md",
+    "docs/adr/003-azure-dr-two-cloud-tradeoff.md",
+    "docs/runbooks/azure-dr-failover.md",
     ".cursor/rules/cost-safety.mdc",
     ".cursor/rules/contract-first.mdc",
     ".cursor/rules/monorepo.mdc",
@@ -60,6 +63,15 @@ REQUIRED_FILES = [
     "infra/terraform/aws/CHECKOV_SKIPS.md",
     "infra/terraform/CHECKOV_VERSION",
     "infra/terraform/aws/.tflint.hcl",
+    "infra/terraform/azure/main.tf",
+    "infra/terraform/azure/modules/adls/main.tf",
+    "infra/terraform/azure/modules/databricks/main.tf",
+    "infra/terraform/azure/modules/replication/main.tf",
+    "infra/terraform/azure/modules/resource_group/main.tf",
+    "infra/terraform/azure/.checkov.yml",
+    "infra/terraform/azure/CHECKOV_SKIPS.md",
+    "infra/terraform/azure/README.md",
+    "infra/terraform/azure/.tflint.hcl",
     "contracts/telemetry-schema/README.md",
     "contracts/telemetry-schema/schemas/sensor_ping.schema.json",
     "contracts/cv-finding-schema/README.md",
@@ -141,5 +153,15 @@ def test_ci_checkov_does_not_override_yaml_skips() -> None:
 def test_makefile_checkov_matches_ci_flags() -> None:
     makefile = (ROOT / "Makefile").read_text(encoding="utf-8")
     assert "--config-file infra/terraform/aws/.checkov.yml" in makefile
+    assert "--config-file infra/terraform/azure/.checkov.yml" in makefile
     assert "--framework terraform" in makefile
     assert "--compact" in makefile and "--quiet" in makefile
+    assert "phase7-check:" in makefile
+    assert "tflint-azure:" in makefile
+
+
+def test_azure_readme_has_test_it_yourself() -> None:
+    text = (ROOT / "infra/terraform/azure/README.md").read_text(encoding="utf-8")
+    assert "Test it yourself" in text
+    assert "make phase7-check" in text
+    assert "terraform validate" in text

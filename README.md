@@ -55,7 +55,7 @@ prism/
 ├── ai-copilot/                 # Phase 9
 ├── cockpit/                    # Phase 8
 ├── infra/terraform/aws         # Phase 6 platform modules (validate/plan only)
-├── infra/terraform/azure       # Phase 7 (null scaffold until then)
+├── infra/terraform/azure       # Phase 7 Azure DR warm standby (validate only)
 ├── observability/              # Phase 10
 ├── docs/adr/                   # ADRs
 ├── docker-compose.yml

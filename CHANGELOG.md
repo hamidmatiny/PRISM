@@ -4,6 +4,13 @@ All notable changes to PRISM are documented here.
 
 ## [Unreleased]
 
+### Phase 7 — Azure DR layer
+
+- ADLS Gen2 + Azure Databricks warm-standby Terraform (`infra/terraform/azure/`)
+- Replication job definition with RPO 15m / RTO 4h targets
+- Failover runbook + ADR-003 (two-cloud cost vs DR benefit)
+- `make phase7-check` matches CI validate/tflint/checkov parity
+
 ### Phase 6 — AWS platform (Terraform)
 
 - Modules under `infra/terraform/aws/`: VPC, ALB+WAF, ECS Fargate + Service Connect, RDS, S3, KMS, Secrets, IAM, observability

@@ -42,6 +42,7 @@ extend-exclude = [
   "dbt/target",
   "dbt/dbt_packages",
   "lakehouse/lakeflow/medallion_notebook.py",
+  "infra/terraform/azure/modules/replication/notebooks",
   "**/migrations/**",
 ]
 

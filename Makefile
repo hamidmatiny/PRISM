@@ -2,9 +2,10 @@
 # ADR-001: no cloud apply targets here.
 
 .PHONY: help up down logs test lint fmt terraform-validate terraform-aws-plan \
-	checkov-aws checkov-azure export-schemas lakehouse-run lakehouse-run-live \
-	dbt-build uc-validate \
-	phase1-check phase2-check phase3-check phase4-check phase5-check phase6-check
+	checkov-aws checkov-azure tflint-aws tflint-azure export-schemas \
+	lakehouse-run lakehouse-run-live dbt-build uc-validate \
+	phase1-check phase2-check phase3-check phase4-check phase5-check \
+	phase6-check phase7-check
 
 CHECKOV_VERSION := $(shell tr -d '[:space:]' < infra/terraform/CHECKOV_VERSION)
 
@@ -22,13 +23,12 @@ help:
 	@echo "  make uc-validate        - structural UC bootstrap / Lakeflow checks"
 	@echo "  make terraform-validate - validate aws + azure stacks (no apply)"
 	@echo "  make terraform-aws-plan - mock-credential plan → tfplan.txt (no apply)"
+	@echo "  make tflint-aws         - tflint on aws (same as CI)"
+	@echo "  make tflint-azure       - tflint on azure (same as CI)"
 	@echo "  make checkov-aws        - checkov on aws stack (same flags as CI)"
 	@echo "  make checkov-azure      - checkov on azure stack (same flags as CI)"
-	@echo "  make phase2-check       - lint + test + uc-validate + terraform-validate"
-	@echo "  make phase3-check       - lint + test + uc-validate + terraform-validate"
-	@echo "  make phase4-check       - lint + test + uc-validate + terraform-validate"
-	@echo "  make phase5-check       - lint + test + uc-validate + terraform-validate"
-	@echo "  make phase6-check       - lint + test + terraform-validate + checkov (CI-parity)"
+	@echo "  make phase6-check       - lint + test + terraform-validate + checkov"
+	@echo "  make phase7-check       - lint + test + validate + tflint + checkov (CI-parity)"
 
 up:
 	docker compose up -d --build
@@ -85,17 +85,12 @@ terraform-aws-plan:
 		terraform plan -input=false -lock=false -no-color -out=tfplan.binary | tee tfplan.txt
 	cd infra/terraform/aws && terraform show -no-color tfplan.binary >> tfplan.txt
 
-phase0-check: lint test terraform-validate
+# Identical tflint invocation to .github/workflows/ci.yml
+tflint-aws:
+	cd infra/terraform/aws && tflint --init && tflint --format compact
 
-phase1-check: lint test terraform-validate
-
-phase2-check: lint test uc-validate terraform-validate
-
-phase3-check: lint test uc-validate terraform-validate
-
-phase4-check: lint test uc-validate terraform-validate
-
-phase5-check: lint test uc-validate terraform-validate
+tflint-azure:
+	cd infra/terraform/azure && tflint --init && tflint --format compact
 
 # Identical checkov invocation to .github/workflows/ci.yml (no CLI --skip-check).
 checkov-aws:
@@ -112,4 +107,19 @@ checkov-azure:
 		--framework terraform \
 		--compact --quiet
 
+phase0-check: lint test terraform-validate
+
+phase1-check: lint test terraform-validate
+
+phase2-check: lint test uc-validate terraform-validate
+
+phase3-check: lint test uc-validate terraform-validate
+
+phase4-check: lint test uc-validate terraform-validate
+
+phase5-check: lint test uc-validate terraform-validate
+
 phase6-check: lint test terraform-validate checkov-aws checkov-azure
+
+# Full local gate matching CI lint + test + terraform matrix (validate/tflint/checkov).
+phase7-check: lint test terraform-validate tflint-aws tflint-azure checkov-aws checkov-azure

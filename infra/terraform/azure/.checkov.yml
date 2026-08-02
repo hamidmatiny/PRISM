@@ -1,8 +1,22 @@
-# Azure stack remains a Phase-0 null scaffold until Phase 7.
+# Authoritative Checkov config for infra/terraform/azure.
+# Reasons: CHECKOV_SKIPS.md (and #checkov:skip on resources).
+#
+# IMPORTANT: CI must NOT also pass --skip-check / skip_check:.
+# CLI skip-check replaces this entire list (checkov arg precedence).
 compact: true
+quiet: true
 framework:
   - terraform
-quiet: true
 
 skip-check:
   - CKV_TF_1
+  - CKV_AZURE_44
+  - CKV2_AZURE_1
+  - CKV_AZURE_206
+  - CKV_AZURE_158
+  - CKV2_AZURE_21
+  - CKV_AZURE_33
+  - CKV_AZURE_59
+  - CKV_AZURE_43
+  - CKV_AZURE_244
+  - CKV2_AZURE_33
