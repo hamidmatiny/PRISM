@@ -11,7 +11,7 @@ PRISM ingests fleet camera + sensor telemetry, runs computer-vision defect/anoma
 | Phase | Component | Status |
 |-------|-----------|--------|
 | 0 | Foundation | Complete — see `PHASE_0_COMPLETION.md` |
-| 1 | Ingestion & contracts | Not started |
+| 1 | Ingestion & contracts | Complete — see `PHASE_1_COMPLETION.md` |
 | 2 | Lakehouse core | Not started |
 | 3 | Computer vision service | Not started |
 | 4 | Activation gateway | Not started |
@@ -23,17 +23,20 @@ PRISM ingests fleet camera + sensor telemetry, runs computer-vision defect/anoma
 | 10 | Observability & security | Not started |
 | 11 | Productionization & demo | Not started |
 
-## Quick start (Phase 0)
+## Quick start (Phase 1)
 
 ```bash
 cp .env.example .env
 python3 -m venv .venv && source .venv/bin/activate
-pip install pytest ruff
-make up            # foundation stub on http://localhost:9199
-make phase0-check  # lint + unit tests + terraform validate
+pip install pytest ruff pydantic
+pip install -e contracts/telemetry-schema -e contracts/cv-finding-schema -e ingestion
+make up              # stub :9199 + ingestion :9105 (file-backed, no AWS)
+curl -s http://localhost:9105/health
+make phase1-check    # lint + unit tests + terraform validate
 ```
 
 No cloud credentials required ([ADR-001](docs/adr/001-cost-safety-policy.md)).
+Optional LocalStack: `PRISM_INGEST_BACKEND=localstack docker compose --profile localstack up`.
 
 ## Monorepo layout
 
@@ -41,8 +44,8 @@ No cloud credentials required ([ADR-001](docs/adr/001-cost-safety-policy.md)).
 prism/
 ├── .cursor/rules/              # Contract-first + cost-safety rules
 ├── .github/workflows/          # CI: lint, test, terraform validate/tflint/checkov
-├── contracts/                  # Shared schemas (stubs in Phase 0)
-├── ingestion/                  # Phase 1
+├── contracts/                  # Shared schemas (telemetry + CV finding live)
+├── ingestion/                  # Simulator + producer + bronze landing
 ├── cv-service/                 # Phase 3
 ├── lakehouse/                  # Phase 2
 ├── dbt/                        # Phase 2
@@ -87,3 +90,4 @@ PRISM owns **9100–9199** (avoids Argus / Vulcan on shared laptops).
 - [ADRs](docs/adr/index.md)
 - [Demo script](docs/DEMO_SCRIPT.md) (Phase 11)
 - [Phase 0 completion](PHASE_0_COMPLETION.md)
+- [Phase 1 completion](PHASE_1_COMPLETION.md)

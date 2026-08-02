@@ -55,9 +55,13 @@ flowchart LR
 
 Cross-service schemas live under `contracts/` and are imported, never copied:
 
-- `telemetry-schema` — sensor pings + camera-frame metadata (Phase 1)
-- `cv-finding-schema` — defect/anomaly findings (Phase 1 / 3)
+- `telemetry-schema` — `SensorPing` + `CameraFrameMetadata` (Pydantic + JSON Schema)
+- `cv-finding-schema` — `CvFinding` defect/anomaly findings (Pydantic + JSON Schema; emitter in Phase 3)
 - `activation-contract` — warehouse-agnostic activate/query OpenAPI (Phase 4)
+
+## Ingestion path (Phase 1)
+
+Mock fleet simulator → contract gate → stream producer (`file` default or LocalStack Kinesis) → Hive-partitioned bronze zone under `.data/bronze/{sensor_pings|camera_frames}/dt=…/device=…/`. Rejected events land in `.data/bronze/_dlq/`.
 
 ## Cost safety
 

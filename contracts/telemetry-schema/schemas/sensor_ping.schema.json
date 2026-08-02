@@ -1,0 +1,92 @@
+{
+  "additionalProperties": false,
+  "description": "One sensor observation from a fleet asset device.",
+  "properties": {
+    "asset_id": {
+      "description": "Fleet asset id, e.g. PRISM-AST-001.",
+      "pattern": "^PRISM-AST-\\d{3}$",
+      "title": "Asset Id",
+      "type": "string"
+    },
+    "device_id": {
+      "description": "Telemetry device id, e.g. PRISM-DEV-001.",
+      "pattern": "^PRISM-DEV-\\d{3}$",
+      "title": "Device Id",
+      "type": "string"
+    },
+    "event_type": {
+      "default": "sensor_ping",
+      "pattern": "^sensor_ping$",
+      "title": "Event Type",
+      "type": "string"
+    },
+    "fuel_level_pct": {
+      "anyOf": [
+        {
+          "maximum": 100.0,
+          "minimum": 0.0,
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Fuel Level Pct"
+    },
+    "heading_deg": {
+      "maximum": 360.0,
+      "minimum": 0.0,
+      "title": "Heading Deg",
+      "type": "number"
+    },
+    "latitude": {
+      "maximum": 90.0,
+      "minimum": -90.0,
+      "title": "Latitude",
+      "type": "number"
+    },
+    "longitude": {
+      "maximum": 180.0,
+      "minimum": -180.0,
+      "title": "Longitude",
+      "type": "number"
+    },
+    "odometer_km": {
+      "minimum": 0.0,
+      "title": "Odometer Km",
+      "type": "number"
+    },
+    "schema_version": {
+      "default": "1.0.0",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "speed_mph": {
+      "description": "Ground speed within fleet operating envelope.",
+      "maximum": 120.0,
+      "minimum": 0.0,
+      "title": "Speed Mph",
+      "type": "number"
+    },
+    "timestamp": {
+      "description": "UTC observation time (timezone-aware).",
+      "format": "date-time",
+      "title": "Timestamp",
+      "type": "string"
+    }
+  },
+  "required": [
+    "asset_id",
+    "device_id",
+    "timestamp",
+    "speed_mph",
+    "latitude",
+    "longitude",
+    "heading_deg",
+    "odometer_km"
+  ],
+  "title": "SensorPing",
+  "type": "object"
+}

@@ -1,0 +1,89 @@
+{
+  "additionalProperties": false,
+  "description": "Metadata for a captured fleet camera frame (imagery lives at storage_uri).",
+  "properties": {
+    "asset_id": {
+      "pattern": "^PRISM-AST-\\d{3}$",
+      "title": "Asset Id",
+      "type": "string"
+    },
+    "capture_exposure_ms": {
+      "anyOf": [
+        {
+          "exclusiveMinimum": 0.0,
+          "maximum": 60000.0,
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Capture Exposure Ms"
+    },
+    "content_type": {
+      "default": "image/jpeg",
+      "pattern": "^image/(jpeg|png|webp)$",
+      "title": "Content Type",
+      "type": "string"
+    },
+    "device_id": {
+      "description": "Camera device id.",
+      "pattern": "^PRISM-DEV-\\d{3}$",
+      "title": "Device Id",
+      "type": "string"
+    },
+    "event_type": {
+      "default": "camera_frame",
+      "pattern": "^camera_frame$",
+      "title": "Event Type",
+      "type": "string"
+    },
+    "frame_id": {
+      "pattern": "^frm_[0-9a-f]{12}$",
+      "title": "Frame Id",
+      "type": "string"
+    },
+    "height_px": {
+      "maximum": 16384,
+      "minimum": 1,
+      "title": "Height Px",
+      "type": "integer"
+    },
+    "schema_version": {
+      "default": "1.0.0",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "storage_uri": {
+      "description": "Object URI for the frame bytes (s3:// or file://).",
+      "minLength": 1,
+      "title": "Storage Uri",
+      "type": "string"
+    },
+    "timestamp": {
+      "description": "UTC capture time (timezone-aware).",
+      "format": "date-time",
+      "title": "Timestamp",
+      "type": "string"
+    },
+    "width_px": {
+      "maximum": 16384,
+      "minimum": 1,
+      "title": "Width Px",
+      "type": "integer"
+    }
+  },
+  "required": [
+    "asset_id",
+    "device_id",
+    "frame_id",
+    "timestamp",
+    "storage_uri",
+    "width_px",
+    "height_px"
+  ],
+  "title": "CameraFrameMetadata",
+  "type": "object"
+}

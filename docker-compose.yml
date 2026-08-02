@@ -1,16 +1,15 @@
 # PRISM local development stack
-# Phase 0: placeholder health stub only — real services land in later phases.
+# Phase 1: foundation stub + ingestion (file-backed Kinesis fallback).
 # ADR-001: zero cloud credentials required for `docker compose up`.
 #
 # Host port range: 9100–9199 (see .cursor/rules/monorepo.mdc)
+#
+# Optional LocalStack Kinesis:
+#   PRISM_INGEST_BACKEND=localstack docker compose --profile localstack up
 
 name: prism
 
 services:
-  # -------------------------------------------------------------------------
-  # Phase 0 — tiny static stub so compose is non-empty and verifiable.
-  # Replaced / joined by real services as phases land.
-  # -------------------------------------------------------------------------
   foundation-stub:
     image: nginx:1.27-alpine
     container_name: prism-foundation-stub
@@ -24,3 +23,57 @@ services:
       timeout: 3s
       retries: 3
       start_period: 5s
+
+  # -------------------------------------------------------------------------
+  # Phase 1 — mock fleet simulator → stream producer → Hive bronze zone
+  # Default backend=file (no AWS / LocalStack required).
+  # -------------------------------------------------------------------------
+  ingestion:
+    build:
+      context: .
+      dockerfile: ingestion/Dockerfile
+    container_name: prism-ingestion
+    ports:
+      - "9105:9105"
+    environment:
+      PRISM_INGEST_BACKEND: ${PRISM_INGEST_BACKEND:-file}
+      PRISM_DATA_ROOT: /data
+      PRISM_EMIT_RATE: ${PRISM_EMIT_RATE:-2}
+      PRISM_FAILURE_RATE: ${PRISM_FAILURE_RATE:-0.05}
+      PRISM_DURATION_SECONDS: ${PRISM_DURATION_SECONDS:-0}
+      PRISM_INGESTION_PORT: "9105"
+      PRISM_SIM_SEED: ${PRISM_SIM_SEED:-42}
+      LOCALSTACK_ENDPOINT: ${LOCALSTACK_ENDPOINT:-http://localstack:4566}
+      AWS_DEFAULT_REGION: us-east-1
+      AWS_ACCESS_KEY_ID: test
+      AWS_SECRET_ACCESS_KEY: test
+    volumes:
+      - prism-data:/data
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request; urllib.request.urlopen('http://127.0.0.1:9105/health')",
+        ]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 15s
+
+  localstack:
+    profiles: ["localstack"]
+    image: localstack/localstack:4.3
+    container_name: prism-localstack
+    ports:
+      - "4566:4566"
+    environment:
+      SERVICES: kinesis,s3
+      DEBUG: "0"
+    volumes:
+      - localstack-data:/var/lib/localstack
+
+volumes:
+  prism-data:
+  localstack-data:

@@ -1,0 +1,139 @@
+{
+  "$defs": {
+    "BoundingBox": {
+      "additionalProperties": false,
+      "description": "Axis-aligned box in pixel space relative to the source frame.",
+      "properties": {
+        "height": {
+          "exclusiveMinimum": 0.0,
+          "title": "Height",
+          "type": "number"
+        },
+        "width": {
+          "exclusiveMinimum": 0.0,
+          "title": "Width",
+          "type": "number"
+        },
+        "x": {
+          "description": "Left edge in pixels.",
+          "minimum": 0.0,
+          "title": "X",
+          "type": "number"
+        },
+        "y": {
+          "description": "Top edge in pixels.",
+          "minimum": 0.0,
+          "title": "Y",
+          "type": "number"
+        }
+      },
+      "required": [
+        "x",
+        "y",
+        "width",
+        "height"
+      ],
+      "title": "BoundingBox",
+      "type": "object"
+    },
+    "DefectClass": {
+      "description": "Coherent fleet-asset defect label set (expanded in Phase 3 service docs).",
+      "enum": [
+        "dent",
+        "crack",
+        "tire_wear",
+        "sensor_obstruction",
+        "anomaly"
+      ],
+      "title": "DefectClass",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "description": "One defect/anomaly detection tied to an asset and source frame.",
+  "properties": {
+    "asset_id": {
+      "pattern": "^PRISM-AST-\\d{3}$",
+      "title": "Asset Id",
+      "type": "string"
+    },
+    "bounding_box": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/BoundingBox"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "confidence": {
+      "maximum": 1.0,
+      "minimum": 0.0,
+      "title": "Confidence",
+      "type": "number"
+    },
+    "defect_class": {
+      "$ref": "#/$defs/DefectClass"
+    },
+    "detected_at": {
+      "description": "UTC detection time (timezone-aware).",
+      "format": "date-time",
+      "title": "Detected At",
+      "type": "string"
+    },
+    "finding_id": {
+      "pattern": "^fnd_[0-9a-f]{12}$",
+      "title": "Finding Id",
+      "type": "string"
+    },
+    "frame_ref": {
+      "description": "Camera frame_id this finding refers to.",
+      "pattern": "^frm_[0-9a-f]{12}$",
+      "title": "Frame Ref",
+      "type": "string"
+    },
+    "model_id": {
+      "default": "yolo-fleet-defects",
+      "minLength": 1,
+      "title": "Model Id",
+      "type": "string"
+    },
+    "reviewed": {
+      "default": false,
+      "description": "True after human review workflow approves/rejects/relabels.",
+      "title": "Reviewed",
+      "type": "boolean"
+    },
+    "schema_version": {
+      "default": "1.0.0",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "segmentation_mask_ref": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Optional URI for a segmentation mask object (s3:// or file://).",
+      "title": "Segmentation Mask Ref"
+    }
+  },
+  "required": [
+    "finding_id",
+    "asset_id",
+    "frame_ref",
+    "defect_class",
+    "confidence",
+    "detected_at"
+  ],
+  "title": "CvFinding",
+  "type": "object"
+}

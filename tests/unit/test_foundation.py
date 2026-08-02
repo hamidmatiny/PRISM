@@ -31,6 +31,7 @@ REQUIRED_FILES = [
     "README.md",
     "ARCHITECTURE.md",
     "PHASE_0_COMPLETION.md",
+    "PHASE_1_COMPLETION.md",
     "docker-compose.yml",
     "Makefile",
     ".env.example",
@@ -40,8 +41,11 @@ REQUIRED_FILES = [
     ".cursor/rules/monorepo.mdc",
     ".github/workflows/ci.yml",
     "contracts/telemetry-schema/README.md",
+    "contracts/telemetry-schema/schemas/sensor_ping.schema.json",
     "contracts/cv-finding-schema/README.md",
+    "contracts/cv-finding-schema/schemas/cv_finding.schema.json",
     "contracts/activation-contract/openapi.yaml",
+    "ingestion/Dockerfile",
 ]
 
 

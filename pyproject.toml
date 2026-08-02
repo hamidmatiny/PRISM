@@ -1,10 +1,12 @@
 [project]
 name = "prism"
-version = "0.0.0"
+version = "0.1.0"
 description = "PRISM — Visual Fleet Intelligence & Multi-Warehouse Analytics Platform"
 readme = "README.md"
 requires-python = ">=3.12"
-dependencies = []
+dependencies = [
+  "pydantic>=2.8",
+]
 
 [project.optional-dependencies]
 dev = [
@@ -18,7 +20,12 @@ packages = []
 
 [tool.pytest.ini_options]
 testpaths = ["tests/unit"]
-pythonpath = ["."]
+pythonpath = [
+  ".",
+  "contracts/telemetry-schema/src",
+  "contracts/cv-finding-schema/src",
+  "ingestion/src",
+]
 
 [tool.ruff]
 line-length = 100
@@ -32,3 +39,10 @@ extend-exclude = [
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B"]
+
+[tool.ruff.lint.isort]
+known-first-party = [
+  "prism_telemetry_schema",
+  "prism_cv_finding_schema",
+  "prism_ingestion",
+]

@@ -1,0 +1,30 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "prism-ingestion"
+version = "0.1.0"
+description = "PRISM mock fleet simulator, stream producer, and bronze landing"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+  "pydantic>=2.8",
+  "prism-telemetry-schema",
+]
+
+[project.optional-dependencies]
+localstack = [
+  "boto3>=1.34",
+]
+dev = [
+  "pytest>=8.0",
+  "ruff>=0.6",
+  "boto3>=1.34",
+]
+
+[project.scripts]
+prism-ingestion = "prism_ingestion.__main__:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
