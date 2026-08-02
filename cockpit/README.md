@@ -31,18 +31,29 @@ Backends must already be up (same continuity as every prior phase):
 # From repo root
 docker compose up -d --build control-plane control-plane-worker activation-gateway cv-service
 
-# Bearer token from control-plane bootstrap
-TOKEN=$(docker compose exec -T -e DJANGO_SETTINGS_MODULE=prism_control.settings \
-  control-plane python -c \
-  "import django; django.setup(); from fleet.models import UserProfile; \
-   print(UserProfile.objects.get(user__username='viewer').api_token)")
-echo "$TOKEN"
+# Bare token only (do NOT use manage.py shell — it prints import banners)
+TOKEN=$(docker compose exec -T control-plane python manage.py print_api_token viewer)
+echo "$TOKEN"   # expect a single 48-char hex line
+
+# Prove auth before opening the UI (must be HTTP 200 + JSON list)
+curl -sS -w "\nHTTP:%{http_code}\n" \
+  -H "Authorization: Bearer $TOKEN" \
+  http://127.0.0.1:9100/api/v1/work-orders
 
 cd cockpit
 npm install
 npm run dev
 # open http://localhost:9101
-# paste $TOKEN into "API token", click Use token → Refresh fleet
+# paste $TOKEN into "API token", click Use token
+# expect: header shows "auth: viewer", HUD "N assets", scrubber "N events"
+```
+
+With the Vite proxy up, also run the same-path smoke the browser uses:
+
+```bash
+# second terminal, repo root, while npm run dev is listening on :9101
+TOKEN=$(docker compose exec -T control-plane python manage.py print_api_token viewer) \
+  node cockpit/scripts/smoke-auth.mjs
 ```
 
 Or via compose (Vite in container, still open the host browser):
@@ -56,6 +67,7 @@ Structural / CI checks (no GPU, no cloud):
 
 ```bash
 cd cockpit && npm ci && npm run typecheck && npm run build
+node --test src/lib/token.test.mjs
 make phase8-check   # from repo root: lint + unit tests + cockpit-build
 ```
 

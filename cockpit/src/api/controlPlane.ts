@@ -1,28 +1,54 @@
+import { normalizeApiToken } from "@/lib/token";
 import type { Asset, Finding, PendingFinding, WorkOrder } from "./types";
 
 const BASE = import.meta.env.VITE_CONTROL_PLANE_URL || "/proxy/control";
 
 function token(): string {
-  return (
-    import.meta.env.VITE_CONTROL_PLANE_TOKEN ||
-    localStorage.getItem("prism_cp_token") ||
-    ""
-  );
+  // Prefer an explicitly saved UI token over any build-time env override.
+  const stored = localStorage.getItem("prism_cp_token");
+  if (stored) return stored;
+  const fromEnv = import.meta.env.VITE_CONTROL_PLANE_TOKEN;
+  return typeof fromEnv === "string" ? normalizeApiToken(fromEnv) : "";
 }
 
 async function cpFetch<T>(path: string, init: RequestInit = {}): Promise<T> {
   const headers = new Headers(init.headers);
-  headers.set("Authorization", `Bearer ${token()}`);
+  const tok = token();
+  if (!tok) {
+    throw new Error(
+      `control-plane ${path}: missing API token — paste the viewer token from ` +
+        "manage.py print_api_token and click Use token",
+    );
+  }
+  headers.set("Authorization", `Bearer ${tok}`);
   const res = await fetch(`${BASE}${path}`, { ...init, headers });
   if (!res.ok) {
     const body = await res.text();
+    if (res.status === 401) {
+      throw new Error(
+        `control-plane ${path}: 401 Unauthorized — token was rejected. ` +
+          `Re-copy with: docker compose exec -T control-plane ` +
+          `python manage.py print_api_token viewer`,
+      );
+    }
     throw new Error(`control-plane ${path}: ${res.status} ${body}`);
   }
   return res.json() as Promise<T>;
 }
 
-export function setControlPlaneToken(value: string): void {
-  localStorage.setItem("prism_cp_token", value);
+export function setControlPlaneToken(value: string): string {
+  const normalized = normalizeApiToken(value);
+  if (!normalized) {
+    localStorage.removeItem("prism_cp_token");
+    return "";
+  }
+  localStorage.setItem("prism_cp_token", normalized);
+  return normalized;
+}
+
+/** Probe auth the same way the cockpit does (Bearer → /api/v1/me). */
+export function verifyToken(): Promise<{ username: string; roles: string[] }> {
+  return cpFetch("/api/v1/me");
 }
 
 export function listAssets(): Promise<Asset[]> {

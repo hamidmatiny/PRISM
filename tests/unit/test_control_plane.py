@@ -209,3 +209,47 @@ def test_fleet_admin_creates_asset_viewer_cannot(roles, client):
     )
     assert ok.status_code == 200
     assert ok.json()["asset_id"] == "PRISM-AST-009"
+
+
+def test_bootstrap_rbac_viewer_token_authenticates_work_orders(roles, client):
+    """README/cockpit path: bootstrap_rbac viewer token must auth work-orders.
+
+    Earlier unit tests minted ad-hoc users via _make_user — that proved the
+    HttpBearer code path runs, not that the bootstrap token the README tells
+    operators to paste actually authenticates. This closes that gap.
+    """
+    from django.core.management import call_command
+
+    call_command("bootstrap_rbac")
+    from io import StringIO
+
+    out = StringIO()
+    call_command("print_api_token", "viewer", stdout=out)
+    token = out.getvalue().strip()
+    assert token
+    assert "\n" not in token
+    assert "objects imported" not in token
+
+    unauthorized = client.get("/api/v1/work-orders")
+    assert unauthorized.status_code == 401
+    assert unauthorized.json()["detail"] == "Unauthorized"
+
+    me = client.get("/api/v1/me", HTTP_AUTHORIZATION=f"Bearer {token}")
+    assert me.status_code == 200, me.content
+    assert me.json()["username"] == "viewer"
+    assert "viewer" in me.json()["roles"]
+
+    work_orders = client.get("/api/v1/work-orders", HTTP_AUTHORIZATION=f"Bearer {token}")
+    assert work_orders.status_code == 200, work_orders.content
+    assert isinstance(work_orders.json(), list)
+
+    queue = client.get("/api/v1/review-queue", HTTP_AUTHORIZATION=f"Bearer {token}")
+    assert queue.status_code == 200, queue.content
+
+
+def test_print_api_token_rejects_unknown_user(roles, client):
+    from django.core.management import call_command
+    from django.core.management.base import CommandError
+
+    with pytest.raises(CommandError, match="not found"):
+        call_command("print_api_token", "no-such-user")

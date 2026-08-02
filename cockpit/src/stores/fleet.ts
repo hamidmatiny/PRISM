@@ -5,6 +5,7 @@ import {
   listFindings,
   listReviewQueue,
   listWorkOrders,
+  verifyToken,
 } from "@/api/controlPlane";
 import { queryAllTelemetry } from "@/api/activation";
 import type { FleetAssetView, Finding, PendingFinding, WorkOrder } from "@/api/types";
@@ -18,6 +19,7 @@ export const useFleetStore = defineStore("fleet", () => {
   const telemetryRows = ref<{ asset_id: string; ping_count: number }[]>([]);
   const loading = ref(false);
   const error = ref<string | null>(null);
+  const authUser = ref<string | null>(null);
   const lastRefresh = ref<string | null>(null);
 
   const byId = computed(() => {
@@ -30,13 +32,47 @@ export const useFleetStore = defineStore("fleet", () => {
     loading.value = true;
     error.value = null;
     try {
-      const [assetList, woList, queue, findingList, tele] = await Promise.all([
-        listAssets().catch(() => [] as Awaited<ReturnType<typeof listAssets>>),
+      // Auth gate first — previously Promise.all failed on work-orders 401 while
+      // listAssets().catch swallowed its own 401, which looked like a WO-only bug.
+      const me = await verifyToken();
+      authUser.value = me.username;
+
+      const settled = await Promise.allSettled([
+        listAssets(),
         listWorkOrders(),
         listReviewQueue(),
-        listFindings().catch(() => [] as Finding[]),
-        queryAllTelemetry().catch(() => ({ columns: [], rows: [], row_count: 0, warehouse: "" })),
+        listFindings(),
+        queryAllTelemetry(),
       ]);
+
+      const assetList =
+        settled[0].status === "fulfilled" ? settled[0].value : ([] as Awaited<ReturnType<typeof listAssets>>);
+      const woList =
+        settled[1].status === "fulfilled" ? settled[1].value : ([] as WorkOrder[]);
+      const queue =
+        settled[2].status === "fulfilled" ? settled[2].value : ([] as PendingFinding[]);
+      const findingList =
+        settled[3].status === "fulfilled" ? settled[3].value : ([] as Finding[]);
+      const tele =
+        settled[4].status === "fulfilled"
+          ? settled[4].value
+          : { columns: [] as string[], rows: [] as unknown[][], row_count: 0, warehouse: "" };
+
+      const softFails = settled
+        .map((r, i) =>
+          r.status === "rejected"
+            ? `${["assets", "work-orders", "review-queue", "findings", "telemetry"][i]}: ${
+                r.reason instanceof Error ? r.reason.message : String(r.reason)
+              }`
+            : null,
+        )
+        .filter(Boolean);
+      if (softFails.length && !assetList.length && !queue.length && !findingList.length && !tele.rows.length) {
+        throw new Error(softFails.join(" · "));
+      }
+      if (softFails.length) {
+        error.value = `Partial refresh (${me.username}): ${softFails.join(" · ")}`;
+      }
 
       workOrders.value = woList;
       pending.value = queue;
@@ -82,6 +118,7 @@ export const useFleetStore = defineStore("fleet", () => {
       });
       lastRefresh.value = new Date().toISOString();
     } catch (e) {
+      authUser.value = null;
       error.value = e instanceof Error ? e.message : String(e);
     } finally {
       loading.value = false;
@@ -108,6 +145,7 @@ export const useFleetStore = defineStore("fleet", () => {
     telemetryRows,
     loading,
     error,
+    authUser,
     lastRefresh,
     byId,
     refresh,

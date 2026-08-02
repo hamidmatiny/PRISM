@@ -127,6 +127,6 @@ phase6-check: lint test terraform-validate checkov-aws checkov-azure
 phase7-check: lint test terraform-validate tflint-aws tflint-azure checkov-aws checkov-azure
 
 cockpit-build:
-	cd cockpit && npm ci && npm run typecheck && npm run build
+	cd cockpit && npm ci && npm run typecheck && npm run build && node --test src/lib/token.test.mjs
 
 phase8-check: lint test cockpit-build

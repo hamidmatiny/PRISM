@@ -31,9 +31,7 @@ python3 -m venv .venv && source .venv/bin/activate
 pip install -e contracts/cv-finding-schema -e control-plane
 docker compose up -d --build control-plane control-plane-worker
 curl -s http://localhost:9100/health
-TOKEN=$(docker compose exec -T control-plane python -c \
-  "import django; django.setup(); from fleet.models import UserProfile; \
-   print(UserProfile.objects.get(user__username='inspector').api_token)")
+TOKEN=$(docker compose exec -T control-plane python manage.py print_api_token inspector)
 curl -s http://localhost:9100/api/v1/review-queue -H "Authorization: Bearer $TOKEN"
 ```
 

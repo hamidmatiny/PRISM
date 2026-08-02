@@ -18,6 +18,7 @@ ENV PRISM_CONTROL_PLANE_PORT=9100 \
     PRISM_CV_REVIEW_PENDING_DIR=/data/cv-review-queue/pending \
     PRISM_CV_REVIEW_DECIDED_DIR=/data/cv-review-queue/decided \
     PRISM_CV_FINDINGS_GOLD_DIR=/data/lakehouse/gold/cv_findings \
+    DJANGO_SETTINGS_MODULE=prism_control.settings \
     DJANGO_DEBUG=0 \
     DJANGO_ALLOWED_HOSTS=localhost,127.0.0.1,0.0.0.0 \
     PYTHONUNBUFFERED=1

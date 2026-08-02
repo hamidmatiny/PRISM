@@ -4,6 +4,7 @@ import TwinViewport from "@/components/TwinViewport.vue";
 import AssetDetailPanel from "@/components/AssetDetailPanel.vue";
 import IncidentScrubber from "@/components/IncidentScrubber.vue";
 import { setControlPlaneToken } from "@/api/controlPlane";
+import { normalizeApiToken } from "@/lib/token";
 import { useFleetStore } from "@/stores/fleet";
 import { useIncidentStore } from "@/stores/incident";
 
@@ -13,7 +14,13 @@ const tokenInput = ref(localStorage.getItem("prism_cp_token") || "");
 const showToken = ref(!tokenInput.value);
 
 function saveToken() {
-  setControlPlaneToken(tokenInput.value.trim());
+  const saved = setControlPlaneToken(tokenInput.value);
+  tokenInput.value = saved;
+  if (!saved) {
+    fleet.error = "Token is empty after normalize — paste the hex from print_api_token.";
+    showToken.value = true;
+    return;
+  }
   showToken.value = false;
   void refresh();
 }
@@ -24,7 +31,11 @@ async function refresh() {
 }
 
 onMounted(() => {
-  if (tokenInput.value) void refresh();
+  const existing = normalizeApiToken(tokenInput.value);
+  if (existing) {
+    tokenInput.value = setControlPlaneToken(existing);
+    void refresh();
+  }
 });
 </script>
 
@@ -39,6 +50,9 @@ onMounted(() => {
         </div>
       </div>
       <div class="actions">
+        <span v-if="fleet.authUser" class="mono auth-ok" aria-live="polite">
+          auth: {{ fleet.authUser }}
+        </span>
         <button type="button" @click="showToken = !showToken">API token</button>
         <button type="button" :disabled="fleet.loading" @click="refresh">
           {{ fleet.loading ? "Refreshing…" : "Refresh fleet" }}
@@ -47,14 +61,15 @@ onMounted(() => {
     </header>
 
     <div v-if="showToken" class="token-bar" role="region" aria-label="Control-plane token">
-      <label class="mono" for="tok">Bearer token (viewer / inspector)</label>
+      <label class="mono" for="tok">API token (viewer / inspector)</label>
       <input
         id="tok"
         v-model="tokenInput"
         class="mono"
-        type="password"
+        type="text"
+        spellcheck="false"
         autocomplete="off"
-        placeholder="from control-plane bootstrap_rbac"
+        placeholder="docker compose exec -T control-plane python manage.py print_api_token"
         @keydown.enter="saveToken"
       />
       <button type="button" @click="saveToken">Use token</button>
@@ -117,7 +132,13 @@ h1 {
 
 .actions {
   display: flex;
+  align-items: center;
   gap: var(--space-2);
+}
+
+.auth-ok {
+  font-size: var(--text-xs);
+  color: var(--color-ok);
 }
 
 .token-bar {

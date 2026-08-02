@@ -36,10 +36,8 @@ pip install -e contracts/cv-finding-schema -e control-plane
 docker compose up -d --build control-plane control-plane-worker
 curl -s http://localhost:9100/health
 
-# Token from container logs / bootstrap:
-TOKEN=$(docker compose exec control-plane python -c \
-  "import django; django.setup(); from fleet.models import UserProfile; \
-   print(UserProfile.objects.get(user__username='inspector').api_token)")
+# Bare token (print_api_token — not manage.py shell, which adds import banners):
+TOKEN=$(docker compose exec -T control-plane python manage.py print_api_token inspector)
 curl -s http://localhost:9100/api/v1/review-queue -H "Authorization: Bearer $TOKEN"
 ```
 
