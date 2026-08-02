@@ -85,9 +85,18 @@ Gold parquet (S3 or local) → `activation-gateway` (`:9103`) behind `activation
 
 Why both warehouses: [ADR-002](docs/adr/002-multi-warehouse-activation.md).
 
+## Control plane path (Phase 5)
+
+`cv-service` low-confidence findings → `.data/cv-review-queue/pending/` → Django control plane (`:9100`):
+
+- Sync/list reads the **same pending JSON files** cv-service writes
+- `viewer` / `inspector` / `fleet-admin` RBAC on the Ninja API
+- Approve / reject / relabel → `ReviewDecision` + `AuditLogEntry`; pending file → `decided/`
+- Approved/relabeled → gold findings zone (`.data/cv-findings/gold/`, `reviewed=true`) via Django-Q2 (inline on SQLite)
+
 ## Cost safety
 
-See [ADR-001](docs/adr/001-cost-safety-policy.md). Local path uses Docker Compose + emulators (DuckDB, LocalStack, moto, mock warehouses). CI validates Terraform; humans apply.
+See [ADR-001](docs/adr/001-cost-safety-policy.md). Local path uses Docker Compose + emulators (DuckDB, LocalStack, moto, mock warehouses, SQLite). CI validates Terraform; humans apply.
 
 ## Build order
 

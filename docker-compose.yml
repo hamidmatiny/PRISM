@@ -1,6 +1,6 @@
 # PRISM local development stack
-# Phase 4: foundation stub + ingestion + cv-service + activation-gateway;
-# optional lakehouse / LocalStack.
+# Phase 5: foundation stub + ingestion + cv-service + activation-gateway +
+# control-plane; optional lakehouse / LocalStack.
 # ADR-001: zero cloud credentials required for `docker compose up`.
 #
 # Host port range: 9100–9199 (see .cursor/rules/monorepo.mdc)
@@ -13,9 +13,10 @@
 # Data path contract (local-first): host `./.data` == container `/data`
 #   /data/bronze              ← ingestion Hive landings (dt=/device=)
 #   /data/lakehouse           ← lakehouse silver/gold parquet
-#   /data/cv-review-queue     ← low-confidence CV findings (Phase 5)
-#   /data/cv-findings         ← auto-published high-confidence findings
+#   /data/cv-review-queue     ← low-confidence CV findings (control-plane review)
+#   /data/cv-findings         ← published + gold reviewed findings
 #   /data/activation          ← warehouse routing registry (Phase 4)
+#   /data/control-plane       ← SQLite (local) / app state
 # Fixture-only CI path (synthetic bronze, not live ingest):
 #   docker compose --profile lakehouse run --rm lakehouse-fixtures
 
@@ -137,6 +138,61 @@ services:
       timeout: 3s
       retries: 5
       start_period: 25s
+
+  # Phase 5 — Django control plane (review queue, RBAC, audit).
+  control-plane:
+    build:
+      context: .
+      dockerfile: control-plane/Dockerfile
+    container_name: prism-control-plane
+    ports:
+      - "9100:9100"
+    environment:
+      PRISM_CONTROL_PLANE_PORT: "9100"
+      PRISM_DATA_ROOT: /data
+      PRISM_CV_REVIEW_PENDING_DIR: /data/cv-review-queue/pending
+      PRISM_CV_REVIEW_DECIDED_DIR: /data/cv-review-queue/decided
+      PRISM_CV_FINDINGS_GOLD_DIR: /data/cv-findings/gold
+      PRISM_BOOTSTRAP_PASSWORD: ${PRISM_BOOTSTRAP_PASSWORD:-prism-local-dev}
+      DJANGO_DEBUG: "0"
+      DJANGO_ALLOWED_HOSTS: localhost,127.0.0.1,0.0.0.0
+      # Prefer PRISM_DATABASE_URL so a host DATABASE_URL (pytest) cannot leak a bad path.
+      DATABASE_URL: ${PRISM_DATABASE_URL:-sqlite:////data/control-plane/db.sqlite3}
+      PRISM_Q_SYNC: "0"
+    volumes:
+      - ./.data:/data
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request; urllib.request.urlopen('http://127.0.0.1:9100/health')",
+        ]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 35s
+
+  control-plane-worker:
+    build:
+      context: .
+      dockerfile: control-plane/Dockerfile
+    container_name: prism-control-plane-worker
+    command: ["python", "manage.py", "qcluster"]
+    environment:
+      PRISM_DATA_ROOT: /data
+      PRISM_CV_REVIEW_PENDING_DIR: /data/cv-review-queue/pending
+      PRISM_CV_REVIEW_DECIDED_DIR: /data/cv-review-queue/decided
+      PRISM_CV_FINDINGS_GOLD_DIR: /data/cv-findings/gold
+      DATABASE_URL: ${PRISM_DATABASE_URL:-sqlite:////data/control-plane/db.sqlite3}
+      DJANGO_ALLOWED_HOSTS: localhost,127.0.0.1,0.0.0.0
+      PRISM_Q_SYNC: "0"
+    volumes:
+      - ./.data:/data
+    depends_on:
+      control-plane:
+        condition: service_healthy
 
   # Phase 2 — Spark local medallion over ingestion-written bronze at /data/bronze.
   lakehouse:

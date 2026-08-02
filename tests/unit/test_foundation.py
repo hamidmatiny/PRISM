@@ -35,6 +35,7 @@ REQUIRED_FILES = [
     "PHASE_2_COMPLETION.md",
     "PHASE_3_COMPLETION.md",
     "PHASE_4_COMPLETION.md",
+    "PHASE_5_COMPLETION.md",
     "docker-compose.yml",
     "Makefile",
     ".env.example",
@@ -62,6 +63,11 @@ REQUIRED_FILES = [
     "activation-gateway/Dockerfile",
     "activation-gateway/fixtures/gold/asset_daily_metrics/part-000.parquet",
     "tests/unit/test_activation_conformance.py",
+    "control-plane/Dockerfile",
+    "control-plane/docs/ASYNC_TASKS.md",
+    "docs/RELEASE_PLAN.md",
+    "docs/PACKAGING_PLAN.md",
+    "CHANGELOG.md",
 ]
 
 

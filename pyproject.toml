@@ -20,6 +20,7 @@ packages = []
 
 [tool.pytest.ini_options]
 testpaths = ["tests/unit"]
+DJANGO_SETTINGS_MODULE = "prism_control.settings"
 pythonpath = [
   ".",
   "contracts/telemetry-schema/src",
@@ -29,6 +30,7 @@ pythonpath = [
   "lakehouse/src",
   "cv-service/src",
   "activation-gateway/src",
+  "control-plane",
 ]
 
 [tool.ruff]
@@ -40,6 +42,7 @@ extend-exclude = [
   "dbt/target",
   "dbt/dbt_packages",
   "lakehouse/lakeflow/medallion_notebook.py",
+  "**/migrations/**",
 ]
 
 [tool.ruff.lint]
@@ -54,4 +57,8 @@ known-first-party = [
   "prism_lakehouse",
   "prism_cv_service",
   "prism_activation_gateway",
+  "prism_control",
+  "fleet",
+  "review",
+  "audit",
 ]

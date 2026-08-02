@@ -15,7 +15,7 @@ PRISM ingests fleet camera + sensor telemetry, runs computer-vision defect/anoma
 | 2 | Lakehouse core | Complete — see `PHASE_2_COMPLETION.md` |
 | 3 | Computer vision service | Complete — see `PHASE_3_COMPLETION.md` |
 | 4 | Activation gateway | Complete — see `PHASE_4_COMPLETION.md` |
-| 5 | Control plane | Not started |
+| 5 | Control plane | Complete — see `PHASE_5_COMPLETION.md` |
 | 6 | AWS platform | Not started |
 | 7 | Azure DR layer | Not started |
 | 8 | Digital twin cockpit | Not started |
@@ -23,22 +23,21 @@ PRISM ingests fleet camera + sensor telemetry, runs computer-vision defect/anoma
 | 10 | Observability & security | Not started |
 | 11 | Productionization & demo | Not started |
 
-## Quick start (Phase 4)
+## Quick start (Phase 5)
 
 ```bash
 cp .env.example .env
 python3 -m venv .venv && source .venv/bin/activate
-pip install -e contracts/activation-contract -e activation-gateway
-docker compose up -d --build activation-gateway
-curl -s http://localhost:9103/health
-GOLD_URI="file://$(pwd)/activation-gateway/fixtures/gold/asset_daily_metrics"
-curl -s http://localhost:9103/v1/activate -H 'content-type: application/json' \
-  -d "{\"gold_table\":\"asset_daily_metrics\",\"warehouse\":\"redshift\",\"gold_uri\":\"$GOLD_URI\"}"
-curl -s http://localhost:9103/v1/query -H 'content-type: application/json' \
-  -d '{"table":"asset_daily_metrics","warehouse":"auto","sql":"SELECT asset_id, ping_count FROM asset_daily_metrics ORDER BY asset_id"}'
+pip install -e contracts/cv-finding-schema -e control-plane
+docker compose up -d --build control-plane control-plane-worker
+curl -s http://localhost:9100/health
+TOKEN=$(docker compose exec -T control-plane python -c \
+  "import django; django.setup(); from fleet.models import UserProfile; \
+   print(UserProfile.objects.get(user__username='inspector').api_token)")
+curl -s http://localhost:9100/api/v1/review-queue -H "Authorization: Bearer $TOKEN"
 ```
 
-No cloud credentials / real warehouses required ([ADR-001](docs/adr/001-cost-safety-policy.md), [ADR-002](docs/adr/002-multi-warehouse-activation.md)).
+No cloud credentials required ([ADR-001](docs/adr/001-cost-safety-policy.md)). Review queue is the real `cv-service` pending directory on the bind-mounted `.data` volume.
 
 ## Monorepo layout
 
@@ -52,7 +51,7 @@ prism/
 ├── lakehouse/                  # PySpark medallion + Lakeflow + UC bootstrap
 ├── dbt/                        # dbt Core silver→gold (DuckDB CI)
 ├── activation-gateway/         # Redshift + Snowflake behind one contract
-├── control-plane/              # Phase 5
+├── control-plane/              # Django + Ninja review / RBAC / audit
 ├── ai-copilot/                 # Phase 9
 ├── cockpit/                    # Phase 8
 ├── infra/terraform/{aws,azure} # Phases 6 / 7 (scaffold validates now)
@@ -70,7 +69,7 @@ PRISM owns **9100–9199** (avoids Argus / Vulcan on shared laptops).
 
 | Port | Service |
 |------|---------|
-| 9100 | control-plane |
+| 9100 | control-plane (live) |
 | 9101 | cockpit |
 | 9102 | cv-service (live) |
 | 9103 | activation-gateway (live; mocks on 9110/9111) |
@@ -96,3 +95,5 @@ PRISM owns **9100–9199** (avoids Argus / Vulcan on shared laptops).
 - [Phase 2 completion](PHASE_2_COMPLETION.md)
 - [Phase 3 completion](PHASE_3_COMPLETION.md)
 - [Phase 4 completion](PHASE_4_COMPLETION.md)
+- [Phase 5 completion](PHASE_5_COMPLETION.md)
+- [Release plan](docs/RELEASE_PLAN.md) · [Packaging plan](docs/PACKAGING_PLAN.md) · [Changelog](CHANGELOG.md)

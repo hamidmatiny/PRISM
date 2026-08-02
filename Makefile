@@ -3,7 +3,7 @@
 
 .PHONY: help up down logs test lint fmt terraform-validate export-schemas \
 	lakehouse-run lakehouse-run-live dbt-build uc-validate \
-	phase1-check phase2-check phase3-check phase4-check
+	phase1-check phase2-check phase3-check phase4-check phase5-check
 
 help:
 	@echo "PRISM targets:"
@@ -21,6 +21,7 @@ help:
 	@echo "  make phase2-check       - lint + test + uc-validate + terraform-validate"
 	@echo "  make phase3-check       - lint + test + uc-validate + terraform-validate"
 	@echo "  make phase4-check       - lint + test + uc-validate + terraform-validate"
+	@echo "  make phase5-check       - lint + test + uc-validate + terraform-validate"
 
 up:
 	docker compose up -d --build
@@ -75,3 +76,5 @@ phase2-check: lint test uc-validate terraform-validate
 phase3-check: lint test uc-validate terraform-validate
 
 phase4-check: lint test uc-validate terraform-validate
+
+phase5-check: lint test uc-validate terraform-validate

@@ -55,6 +55,7 @@ jobs:
           pip install --upgrade pip
           pip install pytest ruff pydantic pyyaml "pyspark>=3.5" "dbt-core>=1.8" "dbt-duckdb>=1.8"
           pip install "onnxruntime>=1.17" "opencv-python-headless>=4.8" "numpy>=1.26" "fastapi>=0.110" "uvicorn>=0.27" "python-multipart" "httpx>=0.27" "duckdb>=1.0"
+          pip install "django>=5.0,<6" "django-ninja>=1.3" "django-q2>=1.6" "dj-database-url>=2.1" "psycopg[binary]>=3.1" pytest-django
           pip install -e contracts/telemetry-schema
           pip install -e contracts/cv-finding-schema
           pip install -e contracts/activation-contract
@@ -62,6 +63,7 @@ jobs:
           pip install -e lakehouse
           pip install -e cv-service
           pip install -e activation-gateway
+          pip install -e control-plane
 
       - name: Unity Catalog bootstrap structural validation
         run: |

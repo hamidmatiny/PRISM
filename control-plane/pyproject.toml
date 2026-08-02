@@ -1,0 +1,33 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "prism-control-plane"
+version = "0.1.0"
+description = "PRISM Django control plane — assets, work orders, CV review, RBAC"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+  "django>=5.0,<6",
+  "django-ninja>=1.3",
+  "django-q2>=1.6",
+  "dj-database-url>=2.1",
+  "psycopg[binary]>=3.1",
+  "prism-cv-finding-schema",
+]
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=8.0",
+  "pytest-django>=4.8",
+  "ruff>=0.6",
+]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["prism_control*", "fleet*", "review*", "audit*"]
+
+[tool.pytest.ini_options]
+DJANGO_SETTINGS_MODULE = "prism_control.settings"
+python_files = ["test_*.py"]
