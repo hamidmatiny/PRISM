@@ -2,6 +2,8 @@
 
 Short records of the biggest technology choices in PRISM. Each ADR states the context, decision, and consequences.
 
+Every `NNN-*.md` ADR in this directory **must** appear in the table below (enforced by `tests/unit/test_foundation.py`).
+
 | ID | Title | Status |
 |----|-------|--------|
 | [001](001-cost-safety-policy.md) | Cost-safety policy (CI never touches real cloud / paid APIs / GPU) | Accepted |

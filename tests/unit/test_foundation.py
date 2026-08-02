@@ -43,7 +43,10 @@ REQUIRED_FILES = [
     "PHASE_10_COMPLETION.md",
     "PHASE_11_COMPLETION.md",
     "docs/DEMO_SCRIPT.md",
+    "docs/adr/index.md",
     "docs/adr/004-copilot-non-fabrication.md",
+    "docs/runbooks/README.md",
+    "docs/README.md",
     "examples/demo/run_demo.sh",
     "examples/demo/seed.py",
     "tests/e2e/test_golden_path.py",
@@ -202,3 +205,27 @@ def test_adr003_and_failover_runbook_are_real() -> None:
     assert "azure-dr-failover.md" in rb_index
     assert "marginal" in adr.read_text(encoding="utf-8").lower()
     assert "PRISM_ACTIVATION_GOLD_ROOT" in runbook.read_text(encoding="utf-8")
+
+
+def test_adr_index_lists_every_adr_file() -> None:
+    """Index files must not lag behind content (regression for ADR-003/004)."""
+    adr_dir = ROOT / "docs/adr"
+    index = (adr_dir / "index.md").read_text(encoding="utf-8")
+    adr_files = sorted(p.name for p in adr_dir.glob("[0-9][0-9][0-9]-*.md"))
+    assert adr_files == [
+        "001-cost-safety-policy.md",
+        "002-multi-warehouse-activation.md",
+        "003-azure-dr-two-cloud-tradeoff.md",
+        "004-copilot-non-fabrication.md",
+    ], f"Unexpected ADR set: {adr_files}"
+    missing = [name for name in adr_files if name not in index]
+    assert missing == [], f"docs/adr/index.md missing rows for: {missing}"
+
+
+def test_runbooks_index_lists_written_runbooks() -> None:
+    rb_dir = ROOT / "docs/runbooks"
+    index = (rb_dir / "README.md").read_text(encoding="utf-8")
+    for name in ("azure-dr-failover.md", "secrets-rotation.md"):
+        assert (rb_dir / name).is_file()
+        assert name in index, f"docs/runbooks/README.md missing {name}"
+    assert "Pending" not in index

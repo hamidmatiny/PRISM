@@ -7,7 +7,7 @@ Vue 3 + Vite + Pinia digital-twin UI for PRISM fleet ops.
 | **Port (host)** | `9101` |
 | **3D** | Three.js `WebGPURenderer` with automatic WebGL backend fallback |
 | **Shaders** | TSL node materials (no hand-written GLSL/WGSL) |
-| **Backends** | control-plane `:9100`, activation-gateway `:9103` (real API shapes) |
+| **Backends** | control-plane `:9100`, activation-gateway `:9103`, ai-copilot `:9104` (Ask PRISM) |
 
 Dark theme is the default — fleet-ops tooling is typically used in low-light
 control rooms (UX, not decoration). Tokens live in `src/styles/tokens.css`.
@@ -21,7 +21,10 @@ control rooms (UX, not decoration). Tokens live in `src/styles/tokens.css`.
    - telemetry bars from activation-gateway `POST /v1/query`
    - CV frame + bounding box from control-plane finding + fixture frame
    - work-order history from control-plane
-4. Bottom **incident scrubber** replaying CV → work order → telemetry events.
+4. **Ask PRISM** panel (`:9104`) — tool-grounded answers only ([ADR-004](../docs/adr/004-copilot-non-fabrication.md)).
+5. Bottom **incident scrubber** replaying CV → work order → telemetry events.
+
+Demo path: `make demo` from repo root (seeded gold + screenshots under `docs/screenshots/`).
 
 ## Test it yourself
 

@@ -76,7 +76,7 @@ PRISM owns **9100–9199** (avoids Argus / Vulcan on shared laptops).
 ## Engineering bar
 
 1. **Contract-first** — schemas live in `contracts/`; services import, never duplicate.
-2. **ADRs** for real decisions — [ADR-001 cost safety](docs/adr/001-cost-safety-policy.md), [ADR-002 multi-warehouse](docs/adr/002-multi-warehouse-activation.md).
+2. **ADRs** for real decisions — [ADR-001 cost safety](docs/adr/001-cost-safety-policy.md), [ADR-002 multi-warehouse](docs/adr/002-multi-warehouse-activation.md), [ADR-003 Azure DR tradeoff](docs/adr/003-azure-dr-two-cloud-tradeoff.md), [ADR-004 copilot non-fabrication](docs/adr/004-copilot-non-fabrication.md) ([index](docs/adr/index.md)).
 3. **Cost safety** — CI never applies Terraform, never calls paid APIs, never runs GPU inference. Emulators only (DuckDB, LocalStack, moto).
 4. **Phase discipline** — one phase at a time; each ends with `PHASE_N_COMPLETION.md`.
 5. **Local-first** — `docker compose up` works without cloud credentials.
@@ -84,12 +84,8 @@ PRISM owns **9100–9199** (avoids Argus / Vulcan on shared laptops).
 ## Docs
 
 - [ARCHITECTURE.md](ARCHITECTURE.md)
-- [ADRs](docs/adr/index.md)
+- [ADRs](docs/adr/index.md) (001–004)
 - [Demo script](docs/DEMO_SCRIPT.md) (Phase 11)
-- [Phase 0 completion](PHASE_0_COMPLETION.md)
-- [Phase 1 completion](PHASE_1_COMPLETION.md)
-- [Phase 2 completion](PHASE_2_COMPLETION.md)
-- [Phase 3 completion](PHASE_3_COMPLETION.md)
-- [Phase 4 completion](PHASE_4_COMPLETION.md)
-- [Phase 5 completion](PHASE_5_COMPLETION.md)
+- [Runbooks](docs/runbooks/README.md) · [Security reviews](docs/security/iam-least-privilege-audit.md)
+- Phase completions: [0](PHASE_0_COMPLETION.md) · [1](PHASE_1_COMPLETION.md) · [2](PHASE_2_COMPLETION.md) · [3](PHASE_3_COMPLETION.md) · [4](PHASE_4_COMPLETION.md) · [5](PHASE_5_COMPLETION.md) · [6](PHASE_6_COMPLETION.md) · [7](PHASE_7_COMPLETION.md) · [8](PHASE_8_COMPLETION.md) · [9](PHASE_9_COMPLETION.md) · [10](PHASE_10_COMPLETION.md) · [11](PHASE_11_COMPLETION.md)
 - [Release plan](docs/RELEASE_PLAN.md) · [Packaging plan](docs/PACKAGING_PLAN.md) · [Changelog](CHANGELOG.md)
