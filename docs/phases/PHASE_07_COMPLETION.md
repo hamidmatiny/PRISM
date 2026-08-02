@@ -10,8 +10,8 @@
   - Azure Databricks workspace (`standard` SKU default — warm standby)
   - Replication **job definition** (Jobs API JSON) + notebook source for S3 → ADLS mirror
 - Documented **RPO = 15 minutes** (job cron) and **RTO = 4 hours** (manual failover) as Terraform outputs / variables
-- Runbook: [`docs/runbooks/azure-dr-failover.md`](docs/runbooks/azure-dr-failover.md) — how to repoint activation-gateway at the Azure gold mirror (Redshift explicitly does not fail over)
-- ADR: [`docs/adr/003-azure-dr-two-cloud-tradeoff.md`](docs/adr/003-azure-dr-two-cloud-tradeoff.md) — honest cost vs benefit of two clouds
+- Runbook: [`docs/runbooks/azure-dr-failover.md`](../runbooks/azure-dr-failover.md) — how to repoint activation-gateway at the Azure gold mirror (Redshift explicitly does not fail over)
+- ADR: [`docs/adr/003-azure-dr-two-cloud-tradeoff.md`](../adr/003-azure-dr-two-cloud-tradeoff.md) — honest cost vs benefit of two clouds
 - Checkov ledger: `infra/terraform/azure/CHECKOV_SKIPS.md` + `.checkov.yml`
 - README **Test it yourself** section with CI-identical commands
 - `make phase7-check` = lint + unit tests + terraform validate + tflint + checkov for **both** stacks (same work CI's terraform matrix does)

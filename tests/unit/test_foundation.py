@@ -30,18 +30,20 @@ REQUIRED_TOP_LEVEL = [
 REQUIRED_FILES = [
     "README.md",
     "ARCHITECTURE.md",
-    "PHASE_0_COMPLETION.md",
-    "PHASE_1_COMPLETION.md",
-    "PHASE_2_COMPLETION.md",
-    "PHASE_3_COMPLETION.md",
-    "PHASE_4_COMPLETION.md",
-    "PHASE_5_COMPLETION.md",
-    "PHASE_6_COMPLETION.md",
-    "PHASE_7_COMPLETION.md",
-    "PHASE_8_COMPLETION.md",
-    "PHASE_9_COMPLETION.md",
-    "PHASE_10_COMPLETION.md",
-    "PHASE_11_COMPLETION.md",
+    "LICENSE",
+    "docs/phases/README.md",
+    "docs/phases/PHASE_00_COMPLETION.md",
+    "docs/phases/PHASE_01_COMPLETION.md",
+    "docs/phases/PHASE_02_COMPLETION.md",
+    "docs/phases/PHASE_03_COMPLETION.md",
+    "docs/phases/PHASE_04_COMPLETION.md",
+    "docs/phases/PHASE_05_COMPLETION.md",
+    "docs/phases/PHASE_06_COMPLETION.md",
+    "docs/phases/PHASE_07_COMPLETION.md",
+    "docs/phases/PHASE_08_COMPLETION.md",
+    "docs/phases/PHASE_09_COMPLETION.md",
+    "docs/phases/PHASE_10_COMPLETION.md",
+    "docs/phases/PHASE_11_COMPLETION.md",
     "docs/DEMO_SCRIPT.md",
     "docs/adr/index.md",
     "docs/adr/004-copilot-non-fabrication.md",
@@ -229,3 +231,13 @@ def test_runbooks_index_lists_written_runbooks() -> None:
         assert (rb_dir / name).is_file()
         assert name in index, f"docs/runbooks/README.md missing {name}"
     assert "Pending" not in index
+
+
+def test_phase_completion_docs_are_zero_padded_under_docs_phases() -> None:
+    phases = ROOT / "docs/phases"
+    expected = [f"PHASE_{n:02d}_COMPLETION.md" for n in range(12)]
+    present = sorted(p.name for p in phases.glob("PHASE_*_COMPLETION.md"))
+    assert present == expected, f"Expected {expected}, got {present}"
+    assert not list(ROOT.glob("PHASE_*_COMPLETION.md")), "phase docs must not remain at repo root"
+    assert (ROOT / "LICENSE").is_file()
+    assert "Apache License" in (ROOT / "LICENSE").read_text(encoding="utf-8")

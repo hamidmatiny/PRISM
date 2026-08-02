@@ -1,7 +1,9 @@
 # Packaging plan (GHCR)
 
-**Plan only.** Do not publish images until a deliberate tagged release
-(see [RELEASE_PLAN.md](./RELEASE_PLAN.md)). Mid-phase `docker push` is out of scope.
+Publish container images **at tagged release time** (see [RELEASE_PLAN.md](./RELEASE_PLAN.md)).
+Mid-phase `docker push` on arbitrary `main` commits is out of scope.
+GHCR publish for a public repo is free and is **not** restricted by ADR-001
+(ADR-001 forbids paid cloud apply / paid APIs / GPU in CI — not OSS registry pushes).
 
 ## Registry
 
@@ -17,54 +19,70 @@
 ghcr.io/hamidmatiny/prism/<service>:<tag>
 ```
 
-| Service | Image | Publish at |
-|---------|-------|------------|
-| `ingestion` | `…/prism/ingestion` | **v1.0.0** |
-| `cv-service` | `…/prism/cv-service` | **v1.0.0** |
-| `activation-gateway` | `…/prism/activation-gateway` | **v1.0.0** |
-| `control-plane` | `…/prism/control-plane` | **v1.0.0** |
-| `lakehouse` | `…/prism/lakehouse` | **v1.0.0** (batch/job image) |
-| `control-plane-worker` | same image as control-plane, different command | n/a (reuse) |
-| foundation-stub | **internal-only** (nginx static) | do not publish |
-| LocalStack / mock warehouses | **internal-only** | do not publish |
+### Core images (required at v1.0.0)
 
-Later tracks:
+| Service | Image |
+|---------|-------|
+| `ingestion` | `ghcr.io/hamidmatiny/prism/ingestion` |
+| `cv-service` | `ghcr.io/hamidmatiny/prism/cv-service` |
+| `activation-gateway` | `ghcr.io/hamidmatiny/prism/activation-gateway` |
+| `control-plane` | `ghcr.io/hamidmatiny/prism/control-plane` |
+| `lakehouse` | `ghcr.io/hamidmatiny/prism/lakehouse` |
 
-| Service | First publish track |
-|---------|---------------------|
-| `cockpit` | v1.2.0 |
-| `ai-copilot` | v1.2.0 |
+`control-plane-worker` reuses the control-plane image with a different command.
 
-## Tagging strategy (tied to RELEASE_PLAN)
+### Surface images (also published at v1.0.0 — phases 8–9 shipped before first tag)
+
+| Service | Image |
+|---------|-------|
+| `cockpit` | `ghcr.io/hamidmatiny/prism/cockpit` |
+| `ai-copilot` | `ghcr.io/hamidmatiny/prism/ai-copilot` |
+
+### Internal-only (do not publish)
+
+foundation-stub (nginx), LocalStack, embedded mock Redshift/Snowflake — ADR-001
+local/CI helpers, not product runtime.
+
+## Tagging strategy
 
 | Tag | Meaning |
 |-----|---------|
 | `v1.0.0` | Immutable release tag matching git tag |
-| `1.0.0` | Same semver without `v` prefix (optional convenience) |
-| `1.0` | Rolling minor pointer (optional) |
-| `latest` | Points at newest **tagged** release on `main` (never at arbitrary phase commits) |
-| `sha-<gitsha>` | Optional provenance tag from release workflow |
+| `1.0.0` | Same semver without `v` prefix |
+| `latest` | Points at newest **tagged** release on `main` |
+| `sha-<gitsha>` | Provenance tag from the release commit |
 
 Do **not** publish `:latest` from every phase commit on `main`.
 
-## What is worth publishing vs internal-only
-
-**Publish** — anything an operator would pull to run the product loop:
-ingestion, cv-service, activation-gateway, control-plane, lakehouse job image.
-
-**Internal-only** — compose helpers and emulators (foundation stub, LocalStack,
-embedded mock Redshift/Snowflake). Those exist for ADR-001 local/CI paths and
-are not product runtime.
-
-## Release workflow (future, not implemented here)
-
-1. Human cuts `vX.Y.Z` after RELEASE_PLAN gate.
-2. CI release job builds listed Dockerfiles with `docker/build-push-action`.
-3. Labels: `org.opencontainers.image.source`, revision, version.
-4. Sign/attest optional later (Phase 10 hardening).
-
-## Local build today (no push)
+## Release publish steps
 
 ```bash
-docker compose build ingestion cv-service activation-gateway control-plane lakehouse
+VERSION=v1.0.0
+SHA=$(git rev-parse --short HEAD)
+OWNER=hamidmatiny
+NS=ghcr.io/${OWNER}/prism
+
+echo "$GHCR_TOKEN" | docker login ghcr.io -u "$OWNER" --password-stdin
+
+for svc in ingestion cv-service activation-gateway control-plane lakehouse ai-copilot; do
+  docker build -f "$svc/Dockerfile" -t "$NS/$svc:$VERSION" -t "$NS/$svc:1.0.0" \
+    -t "$NS/$svc:latest" -t "$NS/$svc:sha-$SHA" \
+    --label "org.opencontainers.image.source=https://github.com/${OWNER}/PRISM" \
+    --label "org.opencontainers.image.version=$VERSION" \
+    --label "org.opencontainers.image.revision=$(git rev-parse HEAD)" \
+    .
+  docker push "$NS/$svc:$VERSION"
+  docker push "$NS/$svc:1.0.0"
+  docker push "$NS/$svc:latest"
+  docker push "$NS/$svc:sha-$SHA"
+done
+
+# cockpit (Vite static build; see cockpit/Dockerfile if present, else multi-stage)
+docker build -f cockpit/Dockerfile -t "$NS/cockpit:$VERSION" ...
+```
+
+## Local build (no push)
+
+```bash
+docker compose build ingestion cv-service activation-gateway control-plane lakehouse ai-copilot
 ```

@@ -14,14 +14,14 @@
   alarms with sane thresholds; fleet ops dashboard retained; ReviewQueueDepth
   EMF emitter on control-plane review-queue reads.
 - **IAM least-privilege audit** of every Phase 6 Terraform role —
-  [docs/security/iam-least-privilege-audit.md](docs/security/iam-least-privilege-audit.md)
+  [docs/security/iam-least-privilege-audit.md](../security/iam-least-privilege-audit.md)
 - **WAF vs OWASP Top 10** review + SQLi / Amazon IP reputation managed rules —
-  [docs/security/waf-owasp-top10-review.md](docs/security/waf-owasp-top10-review.md)
+  [docs/security/waf-owasp-top10-review.md](../security/waf-owasp-top10-review.md)
 - **Secrets rotation** Lambda + `aws_secretsmanager_secret_rotation` (30-day) —
   closes Phase 6 `CKV2_AWS_57` deferral explicitly
-  ([docs/runbooks/secrets-rotation.md](docs/runbooks/secrets-rotation.md))
+  ([docs/runbooks/secrets-rotation.md](../runbooks/secrets-rotation.md))
 - Basic load test against activation-gateway + cockpit API surface —
-  [observability/load-tests/RESULTS.md](observability/load-tests/RESULTS.md)
+  [observability/load-tests/RESULTS.md](../../observability/load-tests/RESULTS.md)
 
 ## Verified
 
@@ -31,7 +31,7 @@
 | `terraform validate` (aws) + archive provider | Green locally |
 | `checkov` aws — 358 passed, 0 failed; **no `CKV2_AWS_57` skip** | Green locally |
 | OTel file export: `activation-gateway` + `control-plane` in `.data/otel/traces.json` | Green |
-| Load test 8×40 — 0% errors on gateway + cockpit API surface | Green ([RESULTS.md](observability/load-tests/RESULTS.md)) |
+| Load test 8×40 — 0% errors on gateway + cockpit API surface | Green ([RESULTS.md](../../observability/load-tests/RESULTS.md)) |
 | `cockpit` typecheck | Green |
 | GitHub Actions for this commit | Linked after push |
 

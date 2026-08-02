@@ -11,8 +11,8 @@
   cockpit proxies → grounded **Ask PRISM** answer  
 - **`make demo`** (`examples/demo/run_demo.sh` + `docker-compose.demo.yml` + seed):  
   full stack with realistic gold/assets/WOs in **under five minutes** (measured **16s** warm / rebuild-bound cold)  
-- Finalized [ARCHITECTURE.md](ARCHITECTURE.md), four ADRs, [docs/DEMO_SCRIPT.md](docs/DEMO_SCRIPT.md)  
-- Real cockpit screenshots under [docs/screenshots/](docs/screenshots/)  
+- Finalized [ARCHITECTURE.md](../../ARCHITECTURE.md), four ADRs, [docs/DEMO_SCRIPT.md](../DEMO_SCRIPT.md)  
+- Real cockpit screenshots under [docs/screenshots/](../screenshots/)  
 - CI job `e2e` runs **after** lint + unit + cockpit + terraform + plan so every prior gate must be green first  
 - Fix found by golden path: Ask PRISM synthesizer counted per-asset pending/WO rows without putting those counts in ADR-004 evidence (`synthesize.py`)
 

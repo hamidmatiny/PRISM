@@ -4,6 +4,18 @@ All notable changes to PRISM are documented here.
 
 ## [Unreleased]
 
+## [1.0.0] — 2026-08-02 — Full portfolio close-out (Phases 0–11)
+
+First tagged release. **`v1.0.0` covers Phases 0–11** (not the earlier mid-build
+plan that would have split 0–5 / 6–7 / 8–9 / 10–11 across minors). See
+[docs/RELEASE_PLAN.md](docs/RELEASE_PLAN.md).
+
+### Release packaging
+
+- Apache-2.0 `LICENSE` (same as Vulcan / aegis)
+- Phase completion docs moved to `docs/phases/PHASE_00`…`PHASE_11_COMPLETION.md`
+- GHCR images under `ghcr.io/hamidmatiny/prism/*` tagged `v1.0.0` / `1.0.0` / `latest`
+
 ### Phase 11 — Productionization & demo
 
 - End-to-end golden-path test (`tests/e2e`) + CI compose job after all prior gates
@@ -43,14 +55,15 @@ All notable changes to PRISM are documented here.
 - CI: `terraform validate` + tflint + checkov; AWS `terraform plan` uploaded as artifact (mock credentials; never apply)
 - Local `docker compose` path unchanged (additive IaC only)
 
-### Housekeeping
+### Phases 0–5 (included)
 
-- Release plan (`docs/RELEASE_PLAN.md`), packaging plan (`docs/PACKAGING_PLAN.md`)
-- Repo description / topics aligned with shipped phases (0–5)
+Data spine + control plane from the pre-tag track — contracts, ingest, lakehouse/dbt,
+CV, activation gateway, Django control plane. See [0.5.0](#050--2026-08-01--phase-5-control-plane)
+notes below for the Phase 5 cut detail.
 
 ## [0.5.0] — 2026-08-01 — Phase 5 (control plane)
 
-*Pre-v1.0.0 track — not yet tagged `v1.0.0`.*
+*Pre-tag track marker in changelog only — first git tag is `v1.0.0`.*
 
 ### Phase commits (0–5)
 

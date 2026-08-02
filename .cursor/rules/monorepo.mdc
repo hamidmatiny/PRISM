@@ -32,7 +32,7 @@ Commit only when the user asks (unless a phase Definition of Done explicitly req
 ## Phase discipline
 
 - One phase per session unless the user explicitly says to continue.
-- Each phase ends with passing tests and `PHASE_N_COMPLETION.md`.
+- Each phase ends with passing tests and `docs/phases/PHASE_NN_COMPLETION.md`.
 - Do not pull Phase N+2 scope into Phase N.
 
 ## Host ports

@@ -10,7 +10,7 @@
   - activation-gateway warehouse query contract
   - control-plane CV review-queue + findings + gold writeback dir
   - control-plane work orders
-- [ADR-004](docs/adr/004-copilot-non-fabrication.md) non-fabrication contract
+- [ADR-004](../adr/004-copilot-non-fabrication.md) non-fabrication contract
 - Structural grounding tests (Vulcan ADR-014 pattern): parse answer → every
   cited number/id must appear in that turn’s tool evidence
 - Light-touch prompt-injection + PII validation (not a full aegis policy engine)

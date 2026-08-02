@@ -62,7 +62,7 @@ def test_phase10_security_docs_exist() -> None:
         "observability/collector/otel-collector-config.yaml",
         "observability/load-tests/run_load_test.py",
         "observability/otel/src/prism_otel/setup.py",
-        "PHASE_10_COMPLETION.md",
+        "docs/phases/PHASE_10_COMPLETION.md",
     ]
     missing = [p for p in required if not (ROOT / p).is_file()]
     assert missing == [], f"Missing Phase 10 artifacts: {missing}"

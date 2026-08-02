@@ -6,16 +6,16 @@
 ## What shipped
 
 - Monorepo scaffold matching the build-brief layout (`contracts/`, service dirs, `lakehouse/`, `dbt/`, `infra/terraform/{aws,azure}/`, `observability/`, `docs/`, `examples/`, `tests/`).
-- [ADR-001](docs/adr/001-cost-safety-policy.md) — CI never touches real cloud resources, paid APIs, or GPU inference; DuckDB / LocalStack / moto for tests; `terraform apply` is manual only.
+- [ADR-001](../adr/001-cost-safety-policy.md) — CI never touches real cloud resources, paid APIs, or GPU inference; DuckDB / LocalStack / moto for tests; `terraform apply` is manual only.
 - Cursor rules under `.cursor/rules/`:
   - `cost-safety.mdc`
   - `contract-first.mdc`
   - `monorepo.mdc`
   - `phase-completion.mdc`
-- CI skeleton [`.github/workflows/ci.yml`](.github/workflows/ci.yml): lint (ruff), unit tests (pytest), terraform `validate` + `tflint` + `checkov` for aws/azure stacks.
+- CI skeleton [`.github/workflows/ci.yml`](../../.github/workflows/ci.yml): lint (ruff), unit tests (pytest), terraform `validate` + `tflint` + `checkov` for aws/azure stacks.
 - Empty-but-valid Terraform scaffolds (`null` provider) under `infra/terraform/aws` and `infra/terraform/azure`.
 - Contract stubs: `telemetry-schema`, `cv-finding-schema`, `activation-contract` (minimal OpenAPI health stub).
-- Root [`README.md`](README.md), [`ARCHITECTURE.md`](ARCHITECTURE.md) (mermaid diagram), component `README.md` files, `.env.example`, `Makefile`, `docker-compose.yml` with a Phase 0 foundation stub on port `9199`.
+- Root [`README.md`](../../README.md), [`ARCHITECTURE.md`](../../ARCHITECTURE.md) (mermaid diagram), component `README.md` files, `.env.example`, `Makefile`, `docker-compose.yml` with a Phase 0 foundation stub on port `9199`.
 - Foundation unit tests in `tests/unit/test_foundation.py`.
 
 ## Deferred (intentionally)

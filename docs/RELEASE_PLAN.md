@@ -1,50 +1,52 @@
 # Release plan
 
-How PRISM phases map to semver tracks. Same discipline as Vulcan: a tagged
-release closes a coherent capability cut, not an arbitrary commit.
+How PRISM phases map to semver. A tagged release closes a coherent capability
+cut, not an arbitrary commit.
 
-## v1.0.0 — Data spine + control plane (Phases 0–5)
+## Decision (v1.0.0)
 
-**Cut justification:** Phases 0–5 close the end-to-end local loop that makes
-PRISM a product, not a pile of stubs:
+**`v1.0.0` covers the full Phases 0–11 portfolio build.**
+
+The mid-build plan (written after Phase 5) sketched a Vulcan-style split
+(`v1.0.0` = 0–5, `v1.1.0` = 6–7, `v1.2.0` = 8–9, `v1.3.0` = 10–11). That split
+made sense while phases were still in flight. By the time of the first tag,
+Phases 0–11 were already complete on `main`, so inventing intermediate tags
+after the fact would misrepresent history.
+
+| Track | Scope | Status |
+|-------|--------|--------|
+| **v1.0.0** | Phases 0–11 — data spine, control plane, AWS/Azure IaC (validate-only), cockpit, Ask PRISM, observability/security, golden-path demo | **This release** |
+| **v1.0.x** | Correctness / docs / CI / packaging fixups only | Future patches |
+| **v1.1.0+** | Net-new capability after the portfolio close-out | Future minors |
+
+Phase completion records live under [`docs/phases/`](./phases/)
+(`PHASE_00_COMPLETION.md` … `PHASE_11_COMPLETION.md`).
+
+## v1.0.0 gate
 
 | Phase | Capability |
 |------:|------------|
 | 0 | Monorepo, ADR-001, CI validate-only |
-| 1 | Telemetry/CV contracts + fleet → bronze |
+| 1 | Telemetry/CV contracts + ingest → bronze |
 | 2 | Lakehouse bronze→silver→gold + dbt |
 | 3 | CV service + confidence-gated review queue |
 | 4 | Activation gateway (Redshift + Snowflake contract) |
-| 5 | Control plane (RBAC review of real pending findings → gold writeback) |
+| 5 | Control plane (RBAC review → gold writeback) |
+| 6 | AWS platform Terraform (validate / plan / checkov in CI) |
+| 7 | Azure DR warm-standby Terraform + failover runbook |
+| 8 | Digital-twin cockpit (Vue 3 + Three.js) |
+| 9 | Tool-grounded AI copilot (Ask PRISM) |
+| 10 | OpenTelemetry, LES dashboards, secrets rotation, security audits |
+| 11 | Golden-path e2e, `make demo`, finalized docs / screenshots |
 
-That is the **full data spine plus the human-in-the-loop control plane**. A
-reviewer can ingest fleet telemetry, land gold, run CV, activate warehouses,
-and approve low-confidence findings — all via `docker compose` with zero cloud
-credentials (ADR-001).
+**Checklist:**
 
-Phases 6–11 add cloud packaging, DR, cockpit UX, copilot, and demo polish.
-Those improve operability and surface area but are not required to prove the
-architecture thesis (“one gold table, many warehouses” + no auto-actioned
-low-confidence CV).
-
-**v1.0.0 gate (checklist):**
-
-- [x] Phases 0–5 complete with `PHASE_N_COMPLETION.md`
-- [x] `docker compose up` path healthy for ingestion, cv-service, activation-gateway, control-plane
-- [x] Conformance / review continuity against live `.data` where claimed
-- [ ] Git tag `v1.0.0` + GHCR publish per [PACKAGING_PLAN.md](./PACKAGING_PLAN.md) (deliberate, not mid-phase)
-
-## Phase → release track
-
-| Track | Phases | Theme |
-|-------|--------|--------|
-| **v1.0.0** | 0–5 | Contracts, ingest, lakehouse/dbt, CV, activation, control plane |
-| **v1.1.0** | 6–7 | AWS platform Terraform modules + Azure DR warm-standby (validate in CI; apply out-of-band) |
-| **v1.2.0** | 8–9 | Digital-twin cockpit (Vue 3 + Three.js) + tool-grounded AI copilot |
-| **v1.3.0** | 10–11 | Observability/security hardening + productionization / demo script close-out |
-
-Minor bumps may absorb fixups (`fix(...)`) without waiting for the next track.
-Patch releases (`v1.0.x`) are for correctness / docs / CI only.
+- [x] Phases 0–11 complete under `docs/phases/PHASE_NN_COMPLETION.md`
+- [x] `docker compose` / `make demo` path healthy with zero cloud credentials (ADR-001)
+- [x] Golden-path e2e + prior CI gates green on `main`
+- [x] Apache-2.0 `LICENSE` at repo root
+- [x] Git tag `v1.0.0` + GitHub Release
+- [x] GHCR publish of core service images per [PACKAGING_PLAN.md](./PACKAGING_PLAN.md)
 
 ## Tagging
 

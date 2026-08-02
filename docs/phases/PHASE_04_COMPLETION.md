@@ -14,7 +14,7 @@
 - **Snowflake adapter** — Iceberg REST / Horizon Catalog zero-copy against the **same** gold URI → `zero_copy` (no storage duplication).
 - Embedded mock warehouse HTTP endpoints on **9110** (Redshift) and **9111** (Snowflake) for local/CI (ADR-001).
 - Conformance suite `tests/unit/test_activation_conformance.py` — identical SQL, equivalent results.
-- [ADR-002](docs/adr/002-multi-warehouse-activation.md) — why both warehouses.
+- [ADR-002](../adr/002-multi-warehouse-activation.md) — why both warehouses.
 - Gold Parquet fixtures under `activation-gateway/fixtures/gold/` (**CI unit path only** — see below).
 
 ## Which gold URI did conformance use?
