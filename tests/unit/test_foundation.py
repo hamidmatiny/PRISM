@@ -46,6 +46,7 @@ REQUIRED_FILES = [
     "docs/phases/PHASE_10_COMPLETION.md",
     "docs/phases/PHASE_11_COMPLETION.md",
     "docs/phases/PHASE_12_COMPLETION.md",
+    "docs/phases/PHASE_13_COMPLETION.md",
     "docs/DEMO_SCRIPT.md",
     "docs/adr/index.md",
     "docs/adr/004-copilot-non-fabrication.md",
@@ -243,7 +244,7 @@ def test_runbooks_index_lists_written_runbooks() -> None:
 
 def test_phase_completion_docs_are_zero_padded_under_docs_phases() -> None:
     phases = ROOT / "docs/phases"
-    expected = [f"PHASE_{n:02d}_COMPLETION.md" for n in range(13)]
+    expected = [f"PHASE_{n:02d}_COMPLETION.md" for n in range(14)]
     present = sorted(p.name for p in phases.glob("PHASE_*_COMPLETION.md"))
     assert present == expected, f"Expected {expected}, got {present}"
     assert not list(ROOT.glob("PHASE_*_COMPLETION.md")), "phase docs must not remain at repo root"
