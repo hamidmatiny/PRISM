@@ -63,6 +63,24 @@ Sample DLQ record from that run (`.data/bronze/_dlq/...json`):
 
 Cursor hit its monthly usage limit before starting this phase. With the user's explicit authorization, this phase was designed and implemented directly against the real repository (cloned fresh, changes committed and pushed with a user-provided scoped PAT) instead of through Cursor. All verification below was run in an isolated Linux sandbox with **no Docker and no outbound access to GitHub release assets / astral.sh** — so unlike every prior phase, there is no live `make demo` / `make e2e` run to report here. Python 3.12 wasn't obtainable in that sandbox either (no root, no reachable package mirror for it); the unit-test verification below ran on Python 3.10 with a small, disclosed stdlib compatibility shim (`datetime.UTC`, `typing.Self`, `enum.StrEnum` — all real Python 3.11+ additions this codebase uses, backported for local verification only, never part of the shipped code). This is disclosed, not hidden, in keeping with ADR-005. **The Docker demo + `make e2e` run in "Verify it yourself" below is the step you should run yourself as the authoritative confirmation** — everything else here was independently verified but on a substitute interpreter.
 
+## CI
+
+First push (`d4a347a`) failed: a Phase-11-era regression test in
+`test_foundation.py` hardcodes the expected `docs/phases/PHASE_*_COMPLETION.md`
+set and required-file list; it correctly caught that `PHASE_13_COMPLETION.md`
+wasn't accounted for. Fixed in `64544b0` (bumped the range and required-files
+list) after reproducing the exact failure locally first, in a disposable
+diagnostic copy with real editable installs (not the pythonpath-override
+shortcut used elsewhere in this doc) to rule out the shortcut itself as the
+cause before touching anything.
+
+Final concluded, green run on `64544b0`: [CI run
+30757428347](https://github.com/hamidmatiny/PRISM/actions/runs/30757428347) —
+Lint, Unit tests, Cockpit build, both Terraform matrix legs, AWS terraform
+plan artifact, and the live Golden-path e2e all passed, 4m 44s total. This
+run wasn't reported until it showed a concluded `Status Success`, not while
+any job was still in progress.
+
 ## Verify it yourself
 
 ```bash
