@@ -47,7 +47,18 @@ make up
 curl -s http://localhost:9105/health
 ```
 
-Local verify for this completion: `make phase1-check` green (35 tests), short file-backend ingest wrote Hive bronze + NDJSON stream. `docker compose config` validates; image build needs a running Docker daemon.
+Local verify for this completion:
+
+- `make phase1-check` green (35 tests); short file-backend ingest wrote Hive bronze + NDJSON stream.
+- **Docker compose verified** (daemon available):  
+  `PRISM_INGEST_BACKEND=localstack docker compose --profile localstack up -d --build`  
+  Health response on `:9105`:
+
+  ```json
+  {"status": "ok", "service": "ingestion", "backend": "localstack", "stats": {"emitted": 5, "accepted": 4, "rejected": 0, "sensor_pings": 3, "camera_frames": 2, "last_error": null, "running": true}}
+  ```
+
+  Containers healthy: `prism-ingestion`, `prism-localstack` (kinesis running), `prism-foundation-stub`. Ingestion log shows `Created LocalStack stream prism-fleet-events`.
 
 ## Stop
 
