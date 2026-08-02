@@ -2,9 +2,8 @@
 
 from __future__ import annotations
 
-from typing import Any
-
 import os
+from typing import Any
 
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
