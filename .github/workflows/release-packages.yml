@@ -1,0 +1,104 @@
+# Publish GHCR images for a tagged release (see docs/PACKAGING_PLAN.md).
+# Not restricted by ADR-001 — OSS registry push only; no cloud apply / paid APIs / GPU.
+name: Release packages
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Git tag to build (e.g. v1.0.0)"
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  packages: write
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAMESPACE: ghcr.io/hamidmatiny/prism
+
+jobs:
+  publish:
+    name: Build and push GHCR images
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - service: ingestion
+            dockerfile: ingestion/Dockerfile
+            context: .
+          - service: cv-service
+            dockerfile: cv-service/Dockerfile
+            context: .
+          - service: activation-gateway
+            dockerfile: activation-gateway/Dockerfile
+            context: .
+          - service: control-plane
+            dockerfile: control-plane/Dockerfile
+            context: .
+          - service: lakehouse
+            dockerfile: lakehouse/Dockerfile
+            context: .
+          - service: ai-copilot
+            dockerfile: ai-copilot/Dockerfile
+            context: .
+          - service: cockpit
+            dockerfile: cockpit/Dockerfile
+            context: ./cockpit
+    steps:
+      - name: Resolve tag
+        id: tag
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "ref=${{ inputs.tag }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "ref=${GITHUB_REF_NAME}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ steps.tag.outputs.ref }}
+
+      - name: Image metadata
+        id: meta
+        run: |
+          TAG="${{ steps.tag.outputs.ref }}"
+          SEMVER="${TAG#v}"
+          SHA_SHORT="$(git rev-parse --short HEAD)"
+          SHA_FULL="$(git rev-parse HEAD)"
+          echo "tag=${TAG}" >> "$GITHUB_OUTPUT"
+          echo "semver=${SEMVER}" >> "$GITHUB_OUTPUT"
+          echo "sha_short=${SHA_SHORT}" >> "$GITHUB_OUTPUT"
+          echo "sha_full=${SHA_FULL}" >> "$GITHUB_OUTPUT"
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push ${{ matrix.service }}
+        uses: docker/build-push-action@v6
+        with:
+          context: ${{ matrix.context }}
+          file: ${{ matrix.dockerfile }}
+          push: true
+          tags: |
+            ${{ env.IMAGE_NAMESPACE }}/${{ matrix.service }}:${{ steps.meta.outputs.tag }}
+            ${{ env.IMAGE_NAMESPACE }}/${{ matrix.service }}:${{ steps.meta.outputs.semver }}
+            ${{ env.IMAGE_NAMESPACE }}/${{ matrix.service }}:latest
+            ${{ env.IMAGE_NAMESPACE }}/${{ matrix.service }}:sha-${{ steps.meta.outputs.sha_short }}
+          labels: |
+            org.opencontainers.image.source=https://github.com/${{ github.repository }}
+            org.opencontainers.image.version=${{ steps.meta.outputs.tag }}
+            org.opencontainers.image.revision=${{ steps.meta.outputs.sha_full }}
+            org.opencontainers.image.title=prism-${{ matrix.service }}

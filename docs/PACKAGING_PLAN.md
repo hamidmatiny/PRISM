@@ -56,29 +56,18 @@ Do **not** publish `:latest` from every phase commit on `main`.
 
 ## Release publish steps
 
+Automated by [`.github/workflows/release-packages.yml`](../.github/workflows/release-packages.yml):
+
+1. Push an annotated tag `vX.Y.Z` (or re-run **Release packages** via `workflow_dispatch` with that tag).
+2. The workflow builds each Dockerfile with Buildx and pushes
+   `:vX.Y.Z`, `:X.Y.Z`, `:latest`, and `:sha-<short>` to GHCR.
+3. OCI labels: `org.opencontainers.image.{source,version,revision,title}`.
+
+Manual local push (requires a PAT with `write:packages`):
+
 ```bash
 VERSION=v1.0.0
-SHA=$(git rev-parse --short HEAD)
-OWNER=hamidmatiny
-NS=ghcr.io/${OWNER}/prism
-
-echo "$GHCR_TOKEN" | docker login ghcr.io -u "$OWNER" --password-stdin
-
-for svc in ingestion cv-service activation-gateway control-plane lakehouse ai-copilot; do
-  docker build -f "$svc/Dockerfile" -t "$NS/$svc:$VERSION" -t "$NS/$svc:1.0.0" \
-    -t "$NS/$svc:latest" -t "$NS/$svc:sha-$SHA" \
-    --label "org.opencontainers.image.source=https://github.com/${OWNER}/PRISM" \
-    --label "org.opencontainers.image.version=$VERSION" \
-    --label "org.opencontainers.image.revision=$(git rev-parse HEAD)" \
-    .
-  docker push "$NS/$svc:$VERSION"
-  docker push "$NS/$svc:1.0.0"
-  docker push "$NS/$svc:latest"
-  docker push "$NS/$svc:sha-$SHA"
-done
-
-# cockpit (Vite static build; see cockpit/Dockerfile if present, else multi-stage)
-docker build -f cockpit/Dockerfile -t "$NS/cockpit:$VERSION" ...
+# … docker build / docker push as in the workflow matrix …
 ```
 
 ## Local build (no push)
