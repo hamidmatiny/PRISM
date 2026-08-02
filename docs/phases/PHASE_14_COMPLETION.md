@@ -99,7 +99,19 @@ Same situation as Phase 13: Cursor is still at its monthly usage limit. With the
 
 ## CI
 
-_(filled in after the real CI run concludes — see the commit that follows this one, or the PR/run link the user was given.)_
+Final concluded, green run on `9c0d42f`: [CI run
+30768843764](https://github.com/hamidmatiny/PRISM/actions/runs/30768843764) —
+Lint (7s), Unit tests (2m 43s, 105 passed/2 skipped), Cockpit build (19s),
+both Terraform matrix legs, the AWS terraform plan artifact, and the live
+Golden-path e2e (2m 9s) all passed. Total 5m 4s. Only annotations were
+GitHub's own Node.js 20 deprecation notices on its runner actions — nothing
+related to this phase's changes. This run wasn't reported until it showed a
+concluded `Status Success`, not while any job was still in progress. First
+push attempt (with an earlier, more narrowly-scoped PAT) was rejected before
+even reaching CI: GitHub refused to accept a push modifying
+`.github/workflows/ci.yml` without the token's `workflow` scope. Resolved by
+the user issuing a new token with that scope added; no code change was
+needed, this was a push-permission issue only.
 
 ## Verify it yourself
 
