@@ -158,7 +158,8 @@ services:
       PRISM_CORS_ORIGINS: http://localhost:9101,http://127.0.0.1:9101
       PRISM_BOOTSTRAP_PASSWORD: ${PRISM_BOOTSTRAP_PASSWORD:-prism-local-dev}
       DJANGO_DEBUG: "0"
-      DJANGO_ALLOWED_HOSTS: localhost,127.0.0.1,0.0.0.0
+      # Include compose DNS name so ai-copilot / cockpit proxies are not DisallowedHost 400s.
+      DJANGO_ALLOWED_HOSTS: localhost,127.0.0.1,0.0.0.0,control-plane
       # Prefer PRISM_DATABASE_URL so a host DATABASE_URL (pytest) cannot leak a bad path.
       # Local default: SQLite under the bind-mounted .data volume (Postgres via PRISM_DATABASE_URL).
       DATABASE_URL: ${PRISM_DATABASE_URL:-sqlite:////data/control-plane/db.sqlite3}
@@ -179,6 +180,41 @@ services:
       retries: 5
       start_period: 35s
 
+  # Phase 9 — tool-grounded Ask PRISM copilot (ADR-004; no paid LLM).
+  ai-copilot:
+    build:
+      context: .
+      dockerfile: ai-copilot/Dockerfile
+    container_name: prism-ai-copilot
+    ports:
+      - "9104:9104"
+    environment:
+      PRISM_AI_COPILOT_PORT: "9104"
+      PRISM_ACTIVATION_URL: http://activation-gateway:9103
+      PRISM_CONTROL_PLANE_URL: http://control-plane:9100
+      PRISM_DATA_ROOT: /data
+      PRISM_CV_FINDINGS_GOLD_DIR: /data/lakehouse/gold/cv_findings
+      PRISM_CORS_ORIGINS: http://localhost:9101,http://127.0.0.1:9101
+    volumes:
+      - ./.data:/data
+    depends_on:
+      control-plane:
+        condition: service_healthy
+      activation-gateway:
+        condition: service_healthy
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request; urllib.request.urlopen('http://127.0.0.1:9104/health')",
+        ]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 20s
+
   # Phase 8 — Vue digital-twin cockpit (dev server; proxies to control-plane + activation).
   cockpit:
     image: node:22-alpine
@@ -191,6 +227,7 @@ services:
       # Browser uses same-origin /proxy/*; Vite proxies to compose DNS names.
       CONTROL_PLANE_PROXY: http://control-plane:9100
       ACTIVATION_PROXY: http://activation-gateway:9103
+      COPILOT_PROXY: http://ai-copilot:9104
     volumes:
       - ./cockpit:/app
       - cockpit_node_modules:/app/node_modules
@@ -198,6 +235,8 @@ services:
       control-plane:
         condition: service_healthy
       activation-gateway:
+        condition: service_healthy
+      ai-copilot:
         condition: service_healthy
 
   control-plane-worker:
@@ -212,7 +251,7 @@ services:
       PRISM_CV_REVIEW_DECIDED_DIR: /data/cv-review-queue/decided
       PRISM_CV_FINDINGS_GOLD_DIR: /data/lakehouse/gold/cv_findings
       DATABASE_URL: ${PRISM_DATABASE_URL:-sqlite:////data/control-plane/db.sqlite3}
-      DJANGO_ALLOWED_HOSTS: localhost,127.0.0.1,0.0.0.0
+      DJANGO_ALLOWED_HOSTS: localhost,127.0.0.1,0.0.0.0,control-plane
       PRISM_Q_SYNC: "0"
     volumes:
       - ./.data:/data

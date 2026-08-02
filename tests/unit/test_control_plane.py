@@ -18,27 +18,6 @@ ROOT = Path(__file__).resolve().parents[2]
 LIVE_PENDING = ROOT / ".data" / "cv-review-queue" / "pending"
 
 
-@pytest.fixture()
-def queue_dirs(tmp_path, settings):
-    pending = tmp_path / "pending"
-    decided = tmp_path / "decided"
-    gold = tmp_path / "gold"
-    pending.mkdir()
-    decided.mkdir()
-    gold.mkdir()
-    settings.CV_REVIEW_PENDING_DIR = pending
-    settings.CV_REVIEW_DECIDED_DIR = decided
-    settings.CV_FINDINGS_GOLD_DIR = gold
-    settings.Q_CLUSTER = {**settings.Q_CLUSTER, "sync": True}
-    return pending, decided, gold
-
-
-@pytest.fixture()
-def roles(db):
-    for name in ("viewer", "inspector", "fleet-admin"):
-        Group.objects.get_or_create(name=name)
-
-
 def _make_user(username: str, role: str) -> tuple[User, str]:
     from fleet.models import UserProfile
 

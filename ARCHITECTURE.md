@@ -116,6 +116,13 @@ Detail panel pulls telemetry through activation-gateway’s query contract, CV
 bounding boxes on fixture frames resolved by control-plane, and work-order
 history. An incident scrubber replays those events in time order.
 
+## Ask PRISM copilot (Phase 9)
+
+`ai-copilot` on `:9104` answers only from tool calls against activation-gateway,
+the CV-finding store, and control-plane work orders. ADR-004 forbids fabricating
+numbers or ids; CI asserts answer tokens ⊆ that turn’s tool evidence. Cockpit
+exposes the panel as **Ask PRISM**.
+
 ## Azure DR path (Phase 7)
 
 Warm-standby Terraform under `infra/terraform/azure/` (validate / tflint / checkov only — never apply in CI):

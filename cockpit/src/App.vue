@@ -3,6 +3,7 @@ import { onMounted, ref } from "vue";
 import TwinViewport from "@/components/TwinViewport.vue";
 import AssetDetailPanel from "@/components/AssetDetailPanel.vue";
 import IncidentScrubber from "@/components/IncidentScrubber.vue";
+import AskPrism from "@/components/AskPrism.vue";
 import { setControlPlaneToken } from "@/api/controlPlane";
 import { normalizeApiToken } from "@/lib/token";
 import { useFleetStore } from "@/stores/fleet";
@@ -80,6 +81,7 @@ onMounted(() => {
     <main class="main">
       <TwinViewport />
       <AssetDetailPanel />
+      <AskPrism />
     </main>
 
     <IncidentScrubber />

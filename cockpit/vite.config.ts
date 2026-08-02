@@ -33,6 +33,11 @@ export default defineConfig({
         changeOrigin: true,
         rewrite: (p) => p.replace(/^\/proxy\/activation/, ""),
       },
+      "/proxy/copilot": {
+        target: process.env.COPILOT_PROXY || "http://127.0.0.1:9104",
+        changeOrigin: true,
+        rewrite: (p) => p.replace(/^\/proxy\/copilot/, ""),
+      },
     },
   },
 });

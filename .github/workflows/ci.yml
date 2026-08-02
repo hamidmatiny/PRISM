@@ -64,6 +64,7 @@ jobs:
           pip install -e cv-service
           pip install -e activation-gateway
           pip install -e control-plane
+          pip install -e ai-copilot
 
       - name: Unity Catalog bootstrap structural validation
         run: |

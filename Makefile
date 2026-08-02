@@ -5,7 +5,7 @@
 	checkov-aws checkov-azure tflint-aws tflint-azure export-schemas \
 	lakehouse-run lakehouse-run-live dbt-build uc-validate \
 	phase1-check phase2-check phase3-check phase4-check phase5-check \
-	phase6-check phase7-check phase8-check cockpit-build
+	phase6-check phase7-check phase8-check phase9-check cockpit-build
 
 CHECKOV_VERSION := $(shell tr -d '[:space:]' < infra/terraform/CHECKOV_VERSION)
 
@@ -31,6 +31,7 @@ help:
 	@echo "  make phase7-check       - lint + test + validate + tflint + checkov (CI-parity)"
 	@echo "  make cockpit-build      - npm ci + typecheck + build (same as CI cockpit job)"
 	@echo "  make phase8-check       - lint + test + cockpit-build"
+	@echo "  make phase9-check       - lint + test (includes copilot grounding)"
 
 up:
 	docker compose up -d --build
@@ -130,3 +131,5 @@ cockpit-build:
 	cd cockpit && npm ci && npm run typecheck && npm run build && node --test src/lib/token.test.mjs
 
 phase8-check: lint test cockpit-build
+
+phase9-check: lint test

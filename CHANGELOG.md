@@ -4,6 +4,12 @@ All notable changes to PRISM are documented here.
 
 ## [Unreleased]
 
+### Phase 9 — AI copilot (Ask PRISM)
+
+- Tool-grounded `ai-copilot` on `:9104` (warehouse / CV findings / work orders)
+- ADR-004 non-fabrication; structural grounding tests; light I/O validation
+- Cockpit Ask PRISM panel
+
 ### Phase 8 — Digital twin cockpit
 
 - Vue 3 / Vite / Pinia cockpit on `:9101` with dark design system + a11y
