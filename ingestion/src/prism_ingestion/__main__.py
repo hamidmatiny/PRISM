@@ -66,6 +66,13 @@ def main(argv: list[str] | None = None) -> int:
     if overrides:
         config = IngestConfig(**{**config.__dict__, **overrides})
 
+    try:
+        from prism_otel import setup_tracing
+
+        setup_tracing("ingestion")
+    except ImportError:
+        pass
+
     pipeline = IngestPipeline.from_config(config)
     server = None
     if not args.no_health:

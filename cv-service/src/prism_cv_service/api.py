@@ -25,6 +25,13 @@ def create_app(config: CvConfig | None = None) -> FastAPI:
     app.state.pipeline = pipeline
     app.state.config = cfg
 
+    try:
+        from prism_otel import instrument_fastapi
+
+        instrument_fastapi(app, "cv-service")
+    except ImportError:
+        pass
+
     @app.get("/health")
     def health() -> dict[str, Any]:
         return {

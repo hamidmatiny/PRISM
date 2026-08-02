@@ -248,6 +248,51 @@ resource "aws_wafv2_web_acl" "this" {
     }
   }
 
+  # OWASP Top 10 baseline additions (Phase 10) — see docs/security/waf-owasp-top10-review.md
+  rule {
+    name     = "AWSManagedSQLi"
+    priority = 4
+
+    override_action {
+      none {}
+    }
+
+    statement {
+      managed_rule_group_statement {
+        name        = "AWSManagedRulesSQLiRuleSet"
+        vendor_name = "AWS"
+      }
+    }
+
+    visibility_config {
+      cloudwatch_metrics_enabled = true
+      metric_name                = "AWSManagedSQLi"
+      sampled_requests_enabled   = true
+    }
+  }
+
+  rule {
+    name     = "AWSManagedAmazonIpReputation"
+    priority = 5
+
+    override_action {
+      none {}
+    }
+
+    statement {
+      managed_rule_group_statement {
+        name        = "AWSManagedRulesAmazonIpReputationList"
+        vendor_name = "AWS"
+      }
+    }
+
+    visibility_config {
+      cloudwatch_metrics_enabled = true
+      metric_name                = "AWSManagedAmazonIpReputation"
+      sampled_requests_enabled   = true
+    }
+  }
+
   tags = var.tags
 }
 

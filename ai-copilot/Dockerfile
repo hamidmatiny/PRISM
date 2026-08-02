@@ -2,9 +2,12 @@
 FROM python:3.12-slim-bookworm
 
 WORKDIR /app
+COPY observability/otel /app/observability/otel
 COPY ai-copilot /app/ai-copilot
 
-RUN pip install --no-cache-dir /app/ai-copilot
+RUN pip install --no-cache-dir \
+      /app/observability/otel \
+      /app/ai-copilot
 
 ENV PRISM_AI_COPILOT_PORT=9104 \
     PRISM_ACTIVATION_URL=http://activation-gateway:9103 \

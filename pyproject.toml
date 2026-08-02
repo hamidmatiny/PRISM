@@ -30,7 +30,9 @@ pythonpath = [
   "lakehouse/src",
   "cv-service/src",
   "activation-gateway/src",
+  "ai-copilot/src",
   "control-plane",
+  "observability/otel/src",
 ]
 
 [tool.ruff]
@@ -58,6 +60,8 @@ known-first-party = [
   "prism_lakehouse",
   "prism_cv_service",
   "prism_activation_gateway",
+  "prism_ai_copilot",
+  "prism_otel",
   "prism_control",
   "fleet",
   "review",

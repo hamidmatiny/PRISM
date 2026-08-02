@@ -8,6 +8,7 @@ import {
   verifyToken,
 } from "@/api/controlPlane";
 import { queryAllTelemetry } from "@/api/activation";
+import { beginOperationTrace } from "@/lib/trace";
 import type { FleetAssetView, Finding, PendingFinding, WorkOrder } from "@/api/types";
 import { assetPosition, computeHealth } from "@/lib/health";
 
@@ -31,6 +32,7 @@ export const useFleetStore = defineStore("fleet", () => {
   async function refresh(): Promise<void> {
     loading.value = true;
     error.value = null;
+    beginOperationTrace("cockpit.fleet.refresh");
     try {
       // Auth gate first — previously Promise.all failed on work-orders 401 while
       // listAssets().catch swallowed its own 401, which looked like a WO-only bug.

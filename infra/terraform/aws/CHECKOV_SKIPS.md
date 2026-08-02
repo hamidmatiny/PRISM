@@ -17,13 +17,23 @@ Pinned version: **checkov 3.3.8** (Makefile + CI).
 | `CKV_AWS_2` | ALB HTTP listener | suppress (global) | HTTP listener is redirect-only; HTTPS listener is the real edge. |
 | `CKV2_AWS_28` | ALB HTTP listener | suppress (global) | Same redirect-only HTTP listener pattern. |
 | `CKV_AWS_144` | `s3` raw/gold/logs | suppress | Cross-region replication is Phase 7 (Azure DR warm standby), not a single-region AWS scaffold concern. |
-| `CKV2_AWS_62` | `s3` raw/gold/logs | suppress | Event notifications need a real consumer (EventBridge/SQS → lakehouse/jobs). Wiring empty targets is security theater; enable with Phase 10/ops emitters. |
-| `CKV2_AWS_57` | `secrets` rds/app | suppress | Automatic rotation needs a rotation Lambda + IAM. Secrets are CMK-encrypted; rotation lands with human-gated apply runbooks, not the plan-only scaffold. |
-| `CKV_AWS_149` | secrets (legacy id) | suppress (global) | Same rotation deferral as `CKV2_AWS_57`. |
+| `CKV2_AWS_62` | `s3` raw/gold/logs | suppress | Event notifications need a real consumer (EventBridge/SQS → lakehouse/jobs). Wiring empty targets is security theater; enable with ops emitters when consumers exist. |
 | `CKV_AWS_111` | IAM execution | suppress (global) | `ecr:GetAuthorizationToken` is account-scoped; AWS requires `Resource=*`. Companion statement scopes image pulls. |
 | `CKV_AWS_91` | ALB access logs graph | suppress (global) | Access logging is enabled on the ALB to the dedicated SSE-S3 logs bucket; graph check is noisy with module boundaries. |
 | `CKV2_AWS_20` | public ALB | suppress (global) | Public ALB is the product edge; WAF + HTTPS protect it. |
 | `CKV_AWS_145` | `s3.aws_s3_bucket.logs` | suppress (inline) | ALB access-log delivery does not support SSE-KMS destinations; SSE-S3 is required by AWS. |
+| `CKV_AWS_117` | `secrets.aws_lambda_function.rotation` | suppress | Rotation Lambda VPC/SG attachment is apply-time (RDS connectivity). Plan scaffold rotates secret versions; runbook covers VPC join before enabling `PRISM_ROTATION_APPLY_RDS`. |
+| `CKV_AWS_116` | rotation Lambda | suppress | DLQ optional for 30-day rotation cadence; Secrets Manager rotation status + CW logs are the failure signal. |
+| `CKV_AWS_50` | rotation Lambda | suppress | X-Ray optional; CW logs + SM events provide audit. |
+| `CKV_AWS_115` | rotation Lambda | suppress | Reserved concurrency unnecessary for infrequent rotation invocations. |
+| `CKV_AWS_272` | rotation Lambda | suppress | Code signing deferred; zip is built from this module’s `lambda/rotate.py`. |
+
+## Closed in Phase 10 (no longer skipped)
+
+| Check ID | Resolution |
+|----------|------------|
+| `CKV2_AWS_57` | `aws_secretsmanager_secret_rotation` + rotation Lambda wired for RDS + app secrets (30-day). See `docs/runbooks/secrets-rotation.md`. |
+| `CKV_AWS_149` | Secrets use customer-managed KMS (`kms_key_id`); legacy global skip removed. |
 
 ## Local ↔ CI parity
 

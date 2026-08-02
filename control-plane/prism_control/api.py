@@ -236,6 +236,9 @@ def review_queue(request):
                 "detected_at": finding.get("detected_at"),
             }
         )
+    from prism_control.metrics import emit_review_queue_depth
+
+    emit_review_queue_depth(len(out))
     return out
 
 

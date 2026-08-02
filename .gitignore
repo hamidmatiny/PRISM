@@ -36,6 +36,7 @@ tfplan.txt
 crash.log
 override.tf
 *_override.tf
+**/modules/secrets/.build/
 # Keep *.terraform.lock.hcl committed for reproducible CI init
 
 # IDE / OS

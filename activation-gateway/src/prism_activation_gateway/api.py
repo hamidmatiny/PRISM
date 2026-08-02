@@ -69,6 +69,13 @@ def create_app(
         allow_headers=["*"],
     )
 
+    try:
+        from prism_otel import instrument_fastapi
+
+        instrument_fastapi(app, "activation-gateway")
+    except ImportError:
+        pass
+
     @app.get("/health", response_model=HealthResponse)
     def health() -> HealthResponse:
         statuses: dict[str, str] = {}

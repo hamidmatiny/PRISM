@@ -1,4 +1,5 @@
 import { normalizeApiToken } from "@/lib/token";
+import { withTraceHeaders } from "@/lib/trace";
 import type { Asset, Finding, PendingFinding, WorkOrder } from "./types";
 
 const BASE = import.meta.env.VITE_CONTROL_PLANE_URL || "/proxy/control";
@@ -12,7 +13,7 @@ function token(): string {
 }
 
 async function cpFetch<T>(path: string, init: RequestInit = {}): Promise<T> {
-  const headers = new Headers(init.headers);
+  const headers = withTraceHeaders(new Headers(init.headers));
   const tok = token();
   if (!tok) {
     throw new Error(
@@ -82,7 +83,7 @@ export function frameUrl(frameRef: string, defectClass: string): string {
 
 /** Fetch frame as blob with Authorization (img src cannot set Bearer). */
 export async function fetchFrameBlob(frameRef: string, defectClass: string): Promise<string> {
-  const headers = new Headers();
+  const headers = withTraceHeaders(new Headers());
   headers.set("Authorization", `Bearer ${token()}`);
   const res = await fetch(
     `${BASE}/api/v1/frames/${encodeURIComponent(frameRef)}?defect_class=${encodeURIComponent(defectClass)}`,

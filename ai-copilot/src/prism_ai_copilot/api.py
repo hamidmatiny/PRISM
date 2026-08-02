@@ -47,6 +47,13 @@ def create_app(config: CopilotConfig | None = None) -> FastAPI:
         allow_headers=["*"],
     )
 
+    try:
+        from prism_otel import instrument_fastapi
+
+        instrument_fastapi(app, "ai-copilot")
+    except ImportError:
+        pass
+
     @app.get("/health")
     def health() -> dict[str, Any]:
         return {

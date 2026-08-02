@@ -4,10 +4,12 @@ FROM python:3.12-slim
 WORKDIR /app
 
 COPY contracts/telemetry-schema /app/contracts/telemetry-schema
+COPY observability/otel /app/observability/otel
 COPY ingestion /app/ingestion
 
 RUN pip install --no-cache-dir \
       /app/contracts/telemetry-schema \
+      /app/observability/otel \
       "/app/ingestion[localstack]"
 
 ENV PRISM_INGEST_BACKEND=file \

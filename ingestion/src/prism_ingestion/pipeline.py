@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import logging
 import time
+from contextlib import nullcontext
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -68,39 +69,59 @@ class IngestPipeline:
 
     def process_one(self) -> bool:
         """Process a single simulated event. Returns True if accepted to bronze."""
-        kind, payload = self.simulator.generate_event()
-        self.stats.emitted += 1
-        if kind == "sensor_ping":
-            self.stats.sensor_pings += 1
-            dataset = "sensor_pings"
-        else:
-            self.stats.camera_frames += 1
-            dataset = "camera_frames"
+        try:
+            from prism_otel import get_tracer
 
-        ok, cleaned, error = validate_event(kind, payload)
-        if not ok:
-            self.stats.rejected += 1
-            self.stats.last_error = error
-            write_dlq_record(
-                self.config.dlq_root,
-                payload,
-                reason=error or "validation_failed",
-                kind=kind,
-            )
-            return False
+            tracer = get_tracer("prism.ingestion")
+        except ImportError:
+            tracer = None
 
-        partition_key = str(cleaned.get("asset_id", "unknown"))
-        self.producer.put_record(partition_key=partition_key, data=cleaned)
-        device_id = str(cleaned.get("device_id", "unknown"))
-        write_bronze_record(
-            self.config.bronze_root,
-            dataset,
-            cleaned,
-            device_id=device_id,
-            event_timestamp=str(cleaned.get("timestamp")),
+        span_cm = (
+            tracer.start_as_current_span("ingest.process_one")
+            if tracer is not None
+            else nullcontext()
         )
-        self.stats.accepted += 1
-        return True
+        with span_cm as span:
+            kind, payload = self.simulator.generate_event()
+            self.stats.emitted += 1
+            if kind == "sensor_ping":
+                self.stats.sensor_pings += 1
+                dataset = "sensor_pings"
+            else:
+                self.stats.camera_frames += 1
+                dataset = "camera_frames"
+            if span is not None:
+                span.set_attribute("prism.event_kind", kind)
+
+            ok, cleaned, error = validate_event(kind, payload)
+            if not ok:
+                self.stats.rejected += 1
+                self.stats.last_error = error
+                write_dlq_record(
+                    self.config.dlq_root,
+                    payload,
+                    reason=error or "validation_failed",
+                    kind=kind,
+                )
+                if span is not None:
+                    span.set_attribute("prism.accepted", False)
+                return False
+
+            partition_key = str(cleaned.get("asset_id", "unknown"))
+            self.producer.put_record(partition_key=partition_key, data=cleaned)
+            device_id = str(cleaned.get("device_id", "unknown"))
+            write_bronze_record(
+                self.config.bronze_root,
+                dataset,
+                cleaned,
+                device_id=device_id,
+                event_timestamp=str(cleaned.get("timestamp")),
+            )
+            self.stats.accepted += 1
+            if span is not None:
+                span.set_attribute("prism.accepted", True)
+                span.set_attribute("prism.asset_id", partition_key)
+            return True
 
     def run(self) -> PipelineStats:
         if self.config.emit_rate_hz <= 0:

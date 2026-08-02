@@ -3,10 +3,12 @@ FROM python:3.12-slim-bookworm
 
 WORKDIR /app
 COPY contracts/cv-finding-schema /app/contracts/cv-finding-schema
+COPY observability/otel /app/observability/otel
 COPY control-plane /app/control-plane
 
 RUN pip install --no-cache-dir \
       /app/contracts/cv-finding-schema \
+      /app/observability/otel \
       /app/control-plane \
       gunicorn
 

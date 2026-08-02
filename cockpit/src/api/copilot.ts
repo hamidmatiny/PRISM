@@ -1,3 +1,5 @@
+import { withTraceHeaders } from "@/lib/trace";
+
 export interface AskResponse {
   answer: string;
   grounded: boolean;
@@ -14,9 +16,10 @@ export async function askPrism(
   question: string,
   controlPlaneToken: string,
 ): Promise<AskResponse> {
+  const headers = withTraceHeaders(new Headers({ "content-type": "application/json" }));
   const res = await fetch(`${BASE}/v1/ask`, {
     method: "POST",
-    headers: { "content-type": "application/json" },
+    headers,
     body: JSON.stringify({
       question,
       control_plane_token: controlPlaneToken || undefined,

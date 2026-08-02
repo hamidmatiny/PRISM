@@ -7,10 +7,12 @@ RUN apt-get update \
 
 WORKDIR /app
 COPY contracts/cv-finding-schema /app/contracts/cv-finding-schema
+COPY observability/otel /app/observability/otel
 COPY cv-service /app/cv-service
 
 RUN pip install --no-cache-dir \
       /app/contracts/cv-finding-schema \
+      /app/observability/otel \
       /app/cv-service
 
 ENV PRISM_CV_SERVICE_PORT=9102 \

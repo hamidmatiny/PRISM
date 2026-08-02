@@ -1,0 +1,98 @@
+{
+  "started_at": "2026-08-02T05:01:54.992015+00:00",
+  "concurrency": 8,
+  "requests_per_endpoint": 40,
+  "wall_seconds": 0.389,
+  "endpoints": [
+    {
+      "name": "activation.health",
+      "requests": 40,
+      "errors": 0,
+      "error_rate": 0.0,
+      "latency_ms": {
+        "p50": 27.039187500122353,
+        "p95": 46.469332999549806,
+        "mean": 28.543728175100114,
+        "max": 48.02520800149068
+      },
+      "status_codes": {
+        "200": 40
+      }
+    },
+    {
+      "name": "activation.query",
+      "requests": 40,
+      "errors": 0,
+      "error_rate": 0.0,
+      "latency_ms": {
+        "p50": 21.040165998783777,
+        "p95": 32.2825000002922,
+        "mean": 22.48091547489821,
+        "max": 34.64541699941037
+      },
+      "status_codes": {
+        "200": 40
+      }
+    },
+    {
+      "name": "control_plane.health",
+      "requests": 40,
+      "errors": 0,
+      "error_rate": 0.0,
+      "latency_ms": {
+        "p50": 1.9288960011181189,
+        "p95": 3.725167000084184,
+        "mean": 2.1929417502178694,
+        "max": 3.9634579989069607
+      },
+      "status_codes": {
+        "200": 40
+      }
+    },
+    {
+      "name": "control_plane.me",
+      "requests": 40,
+      "errors": 0,
+      "error_rate": 0.0,
+      "latency_ms": {
+        "p50": 7.894353999290615,
+        "p95": 12.044209001032868,
+        "mean": 8.448949000194261,
+        "max": 13.674082998477388
+      },
+      "status_codes": {
+        "200": 40
+      }
+    },
+    {
+      "name": "control_plane.work_orders",
+      "requests": 40,
+      "errors": 0,
+      "error_rate": 0.0,
+      "latency_ms": {
+        "p50": 8.107416999337147,
+        "p95": 11.276791999989655,
+        "mean": 8.304682400739694,
+        "max": 11.418500002037035
+      },
+      "status_codes": {
+        "200": 40
+      }
+    },
+    {
+      "name": "cockpit.proxy.control_health",
+      "requests": 40,
+      "errors": 0,
+      "error_rate": 0.0,
+      "latency_ms": {
+        "p50": 5.066604000603547,
+        "p95": 14.082917001360329,
+        "mean": 7.108120874909218,
+        "max": 15.30099999945378
+      },
+      "status_codes": {
+        "200": 40
+      }
+    }
+  ]
+}

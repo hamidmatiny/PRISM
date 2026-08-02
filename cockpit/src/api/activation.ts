@@ -1,3 +1,4 @@
+import { withTraceHeaders } from "@/lib/trace";
 import type { QueryResponse } from "./types";
 
 const BASE = import.meta.env.VITE_ACTIVATION_URL || "/proxy/activation";
@@ -16,9 +17,10 @@ export async function ensureActivated(table = "asset_daily_metrics"): Promise<vo
   ].filter((u): u is string => Boolean(u));
 
   for (const gold_uri of candidates) {
+    const headers = withTraceHeaders(new Headers({ "content-type": "application/json" }));
     const res = await fetch(`${BASE}/v1/activate`, {
       method: "POST",
-      headers: { "content-type": "application/json" },
+      headers,
       body: JSON.stringify({
         gold_table: table,
         warehouse: "redshift",
@@ -32,9 +34,10 @@ export async function ensureActivated(table = "asset_daily_metrics"): Promise<vo
 
 export async function queryGold(sql: string, table = "asset_daily_metrics"): Promise<QueryResponse> {
   await ensureActivated(table);
+  const headers = withTraceHeaders(new Headers({ "content-type": "application/json" }));
   const res = await fetch(`${BASE}/v1/query`, {
     method: "POST",
-    headers: { "content-type": "application/json" },
+    headers,
     body: JSON.stringify({
       table,
       warehouse: "auto",

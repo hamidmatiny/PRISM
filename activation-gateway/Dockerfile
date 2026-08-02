@@ -4,10 +4,12 @@ FROM python:3.12-slim-bookworm
 
 WORKDIR /app
 COPY contracts/activation-contract /app/contracts/activation-contract
+COPY observability/otel /app/observability/otel
 COPY activation-gateway /app/activation-gateway
 
 RUN pip install --no-cache-dir \
       /app/contracts/activation-contract \
+      /app/observability/otel \
       /app/activation-gateway
 
 ENV PRISM_ACTIVATION_GATEWAY_PORT=9103 \

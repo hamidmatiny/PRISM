@@ -1,0 +1,27 @@
+# Local OTel collector — ADR-001: file + debug exporters only (no cloud).
+receivers:
+  otlp:
+    protocols:
+      grpc:
+        endpoint: 0.0.0.0:4317
+      http:
+        endpoint: 0.0.0.0:4318
+
+processors:
+  batch:
+    timeout: 1s
+
+exporters:
+  file/traces:
+    path: /var/otel/traces.json
+    rotation:
+      max_megabytes: 10
+  debug:
+    verbosity: basic
+
+service:
+  pipelines:
+    traces:
+      receivers: [otlp]
+      processors: [batch]
+      exporters: [file/traces, debug]

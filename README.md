@@ -74,6 +74,7 @@ PRISM owns **9100–9199** (avoids Argus / Vulcan on shared laptops).
 | 9103 | activation-gateway (live; mocks on 9110/9111) |
 | 9104 | ai-copilot |
 | 9105 | ingestion |
+| 9106 | OpenTelemetry collector (OTLP HTTP) |
 | 9199 | Phase 0 foundation stub |
 
 ## Engineering bar

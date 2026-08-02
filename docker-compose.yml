@@ -37,6 +37,17 @@ services:
       retries: 3
       start_period: 5s
 
+  # Phase 10 — OpenTelemetry collector (OTLP HTTP :9106 → file under .data/otel).
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:0.115.1
+    container_name: prism-otel-collector
+    command: ["--config=/etc/otelcol/config.yaml"]
+    ports:
+      - "9106:4318"
+    volumes:
+      - ./observability/collector/otel-collector-config.yaml:/etc/otelcol/config.yaml:ro
+      - ./.data/otel:/var/otel
+
   ingestion:
     build:
       context: .
@@ -56,6 +67,12 @@ services:
       AWS_DEFAULT_REGION: us-east-1
       AWS_ACCESS_KEY_ID: test
       AWS_SECRET_ACCESS_KEY: test
+      OTEL_SERVICE_NAME: ingestion
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4318
+      OTEL_RESOURCE_ATTRIBUTES: service.namespace=prism,deployment.environment=local
+    depends_on:
+      otel-collector:
+        condition: service_started
     volumes:
       # Bind mount so host dbt/Spark and containers share one bronze zone.
       - ./.data:/data
@@ -86,6 +103,12 @@ services:
       PRISM_CV_CONFIDENCE_THRESHOLD: ${PRISM_CV_CONFIDENCE_THRESHOLD:-0.55}
       PRISM_CV_MODEL_PATH: /app/cv-service/models/yolo_fleet_defects_tiny.onnx
       PRISM_CV_LABELS_PATH: /app/cv-service/models/labels.json
+      OTEL_SERVICE_NAME: cv-service
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4318
+      OTEL_RESOURCE_ATTRIBUTES: service.namespace=prism,deployment.environment=local
+    depends_on:
+      otel-collector:
+        condition: service_started
     volumes:
       - ./.data:/data
       - ./cv-service/fixtures:/fixtures:ro
@@ -124,6 +147,12 @@ services:
       PRISM_ACTIVATION_FIXTURE_GOLD: /app/activation-gateway/fixtures/gold
       PRISM_ACTIVATION_ROUTING_PATH: /data/activation/routing.json
       PRISM_CORS_ORIGINS: http://localhost:9101,http://127.0.0.1:9101
+      OTEL_SERVICE_NAME: activation-gateway
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4318
+      OTEL_RESOURCE_ATTRIBUTES: service.namespace=prism,deployment.environment=local
+    depends_on:
+      otel-collector:
+        condition: service_started
     volumes:
       - ./.data:/data
       - ./activation-gateway/fixtures:/fixtures:ro
@@ -164,6 +193,12 @@ services:
       # Local default: SQLite under the bind-mounted .data volume (Postgres via PRISM_DATABASE_URL).
       DATABASE_URL: ${PRISM_DATABASE_URL:-sqlite:////data/control-plane/db.sqlite3}
       PRISM_Q_SYNC: "0"
+      OTEL_SERVICE_NAME: control-plane
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4318
+      OTEL_RESOURCE_ATTRIBUTES: service.namespace=prism,deployment.environment=local
+    depends_on:
+      otel-collector:
+        condition: service_started
     volumes:
       - ./.data:/data
       - ./cv-service/fixtures/images:/cv-fixtures:ro
@@ -195,9 +230,14 @@ services:
       PRISM_DATA_ROOT: /data
       PRISM_CV_FINDINGS_GOLD_DIR: /data/lakehouse/gold/cv_findings
       PRISM_CORS_ORIGINS: http://localhost:9101,http://127.0.0.1:9101
+      OTEL_SERVICE_NAME: ai-copilot
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4318
+      OTEL_RESOURCE_ATTRIBUTES: service.namespace=prism,deployment.environment=local
     volumes:
       - ./.data:/data
     depends_on:
+      otel-collector:
+        condition: service_started
       control-plane:
         condition: service_healthy
       activation-gateway:

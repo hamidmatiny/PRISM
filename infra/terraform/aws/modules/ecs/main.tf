@@ -144,6 +144,11 @@ resource "aws_ecs_task_definition" "service" {
         { name = "PRISM_RAW_BUCKET", value = var.raw_bucket_id },
         { name = "PRISM_GOLD_BUCKET", value = var.gold_bucket_id },
         { name = "PRISM_SERVICE_CONNECT_NS", value = aws_service_discovery_http_namespace.this.name },
+        # OTel — collector endpoint is apply-time (ADOT sidecar / central collector).
+        # Disabled until OTEL_EXPORTER_OTLP_ENDPOINT is set; prism-otel no-ops otherwise.
+        { name = "OTEL_SERVICE_NAME", value = each.key },
+        { name = "OTEL_RESOURCE_ATTRIBUTES", value = "service.namespace=prism,deployment.environment=aws" },
+        { name = "OTEL_SDK_DISABLED", value = "false" },
       ]
       secrets = concat(
         [

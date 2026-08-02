@@ -16,8 +16,12 @@ skip-check:
   - CKV2_AWS_28
   - CKV_AWS_144
   - CKV2_AWS_62
-  - CKV2_AWS_57
-  - CKV_AWS_149
   - CKV_AWS_111
   - CKV_AWS_91
   - CKV2_AWS_20
+  # Rotation Lambda hardenings — reasons on resource + CHECKOV_SKIPS.md
+  - CKV_AWS_117
+  - CKV_AWS_116
+  - CKV_AWS_50
+  - CKV_AWS_115
+  - CKV_AWS_272

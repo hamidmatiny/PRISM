@@ -19,6 +19,41 @@ variable "tags" {
   default = {}
 }
 
+locals {
+  # Every ECS-bound service from Phase 6 IAM/ECS modules.
+  services = toset([
+    "ingestion",
+    "cv-service",
+    "activation-gateway",
+    "control-plane",
+    "ai-copilot",
+  ])
+
+  # Latency (seconds), error count / 60s, CPU saturation (%)
+  latency_thresholds = {
+    "ingestion"          = 2
+    "cv-service"         = 5
+    "activation-gateway" = 2
+    "control-plane"      = 2
+    "ai-copilot"         = 3
+  }
+  error_thresholds = {
+    "ingestion"          = 10
+    "cv-service"         = 5
+    "activation-gateway" = 5
+    "control-plane"      = 5
+    "ai-copilot"         = 5
+  }
+  cpu_thresholds = {
+    "ingestion"          = 85
+    "cv-service"         = 85
+    "activation-gateway" = 80
+    "control-plane"      = 80
+    "ai-copilot"         = 80
+  }
+}
+
+# Fleet-wide ops overview (kept from Phase 6).
 resource "aws_cloudwatch_dashboard" "prism" {
   dashboard_name = "${var.name_prefix}-ops"
 
@@ -61,10 +96,10 @@ resource "aws_cloudwatch_dashboard" "prism" {
         width  = 12
         height = 6
         properties = {
-          title  = "ECS CPU (control-plane)"
+          title  = "RDS CPU"
           region = var.aws_region
           metrics = [
-            ["AWS/ECS", "CPUUtilization", "ClusterName", var.ecs_cluster_name, "ServiceName", "control-plane", { stat = "Average" }],
+            ["AWS/RDS", "CPUUtilization", "DBInstanceIdentifier", var.rds_instance_id, { stat = "Average" }],
           ]
           period = 60
         }
@@ -76,25 +111,100 @@ resource "aws_cloudwatch_dashboard" "prism" {
         width  = 12
         height = 6
         properties = {
-          title  = "RDS CPU"
+          title  = "Review queue depth"
           region = var.aws_region
           metrics = [
-            ["AWS/RDS", "CPUUtilization", "DBInstanceIdentifier", var.rds_instance_id, { stat = "Average" }],
+            ["PRISM", "ReviewQueueDepth", { stat = "Maximum" }],
+          ]
+          period = 60
+        }
+      }
+    ]
+  })
+}
+
+# Per-service LES dashboards: Latency / Errors / Saturation.
+resource "aws_cloudwatch_dashboard" "service" {
+  for_each       = local.services
+  dashboard_name = "${var.name_prefix}-${each.key}"
+
+  dashboard_body = jsonencode({
+    widgets = [
+      {
+        type   = "metric"
+        x      = 0
+        y      = 0
+        width  = 8
+        height = 6
+        properties = {
+          title   = "${each.key} latency p95"
+          region  = var.aws_region
+          metrics = [
+            [
+              "AWS/ApplicationELB", "TargetResponseTime",
+              "TargetGroup", lookup(var.target_group_arn_suffixes, each.key, ""),
+              "LoadBalancer", var.alb_arn_suffix,
+              { stat = "p95", label = "p95" },
+            ],
+          ]
+          period = 60
+          yAxis  = { left = { min = 0 } }
+        }
+      },
+      {
+        type   = "metric"
+        x      = 8
+        y      = 0
+        width  = 8
+        height = 6
+        properties = {
+          title  = "${each.key} 5XX"
+          region = var.aws_region
+          metrics = [
+            [
+              "AWS/ApplicationELB", "HTTPCode_Target_5XX_Count",
+              "TargetGroup", lookup(var.target_group_arn_suffixes, each.key, ""),
+              "LoadBalancer", var.alb_arn_suffix,
+              { stat = "Sum", label = "5xx" },
+            ],
+            [
+              "AWS/ApplicationELB", "HTTPCode_Target_4XX_Count",
+              "TargetGroup", lookup(var.target_group_arn_suffixes, each.key, ""),
+              "LoadBalancer", var.alb_arn_suffix,
+              { stat = "Sum", label = "4xx" },
+            ],
           ]
           period = 60
         }
       },
       {
         type   = "metric"
+        x      = 16
+        y      = 0
+        width  = 8
+        height = 6
+        properties = {
+          title  = "${each.key} saturation (CPU / memory)"
+          region = var.aws_region
+          metrics = [
+            ["AWS/ECS", "CPUUtilization", "ClusterName", var.ecs_cluster_name, "ServiceName", each.key, { stat = "Average", label = "cpu" }],
+            ["AWS/ECS", "MemoryUtilization", "ClusterName", var.ecs_cluster_name, "ServiceName", each.key, { stat = "Average", label = "mem" }],
+          ]
+          period = 60
+          yAxis  = { left = { min = 0, max = 100 } }
+        }
+      },
+      {
+        type   = "metric"
         x      = 0
-        y      = 12
+        y      = 6
         width  = 12
         height = 6
         properties = {
-          title  = "Control-plane target response time"
+          title  = "${each.key} running tasks"
           region = var.aws_region
           metrics = [
-            ["AWS/ApplicationELB", "TargetResponseTime", "TargetGroup", lookup(var.target_group_arn_suffixes, "control-plane", ""), "LoadBalancer", var.alb_arn_suffix, { stat = "p95" }],
+            ["ECS/ContainerInsights", "RunningTaskCount", "ClusterName", var.ecs_cluster_name, "ServiceName", each.key, { stat = "Average" }],
           ]
           period = 60
         }
@@ -102,14 +212,19 @@ resource "aws_cloudwatch_dashboard" "prism" {
       {
         type   = "metric"
         x      = 12
-        y      = 12
+        y      = 6
         width  = 12
         height = 6
         properties = {
-          title  = "Review queue depth"
+          title  = "${each.key} request count"
           region = var.aws_region
           metrics = [
-            ["PRISM", "ReviewQueueDepth", { stat = "Maximum" }],
+            [
+              "AWS/ApplicationELB", "RequestCount",
+              "TargetGroup", lookup(var.target_group_arn_suffixes, each.key, ""),
+              "LoadBalancer", var.alb_arn_suffix,
+              { stat = "Sum" },
+            ],
           ]
           period = 60
         }
@@ -168,8 +283,63 @@ resource "aws_cloudwatch_metric_alarm" "rds_cpu" {
   tags = var.tags
 }
 
-# Queue-depth stand-in: ECS RunningTaskCount drop for control-plane (review workers).
-# Custom EMF metric PRISM/ReviewQueueDepth can replace this after Phase 10 wiring.
+resource "aws_cloudwatch_metric_alarm" "service_cpu" {
+  for_each            = local.services
+  alarm_name          = "${var.name_prefix}-${each.key}-cpu"
+  comparison_operator = "GreaterThanThreshold"
+  evaluation_periods  = 3
+  metric_name         = "CPUUtilization"
+  namespace           = "AWS/ECS"
+  period              = 60
+  statistic           = "Average"
+  threshold           = local.cpu_thresholds[each.key]
+  alarm_description   = "${each.key} CPU > ${local.cpu_thresholds[each.key]}%"
+  treat_missing_data  = "notBreaching"
+  dimensions = {
+    ClusterName = var.ecs_cluster_name
+    ServiceName = each.key
+  }
+  tags = var.tags
+}
+
+resource "aws_cloudwatch_metric_alarm" "service_latency" {
+  for_each            = local.services
+  alarm_name          = "${var.name_prefix}-${each.key}-latency-p95"
+  comparison_operator = "GreaterThanThreshold"
+  evaluation_periods  = 3
+  metric_name         = "TargetResponseTime"
+  namespace           = "AWS/ApplicationELB"
+  period              = 60
+  extended_statistic  = "p95"
+  threshold           = local.latency_thresholds[each.key]
+  alarm_description   = "${each.key} p95 latency > ${local.latency_thresholds[each.key]}s"
+  treat_missing_data  = "notBreaching"
+  dimensions = {
+    LoadBalancer = var.alb_arn_suffix
+    TargetGroup  = lookup(var.target_group_arn_suffixes, each.key, "")
+  }
+  tags = var.tags
+}
+
+resource "aws_cloudwatch_metric_alarm" "service_5xx" {
+  for_each            = local.services
+  alarm_name          = "${var.name_prefix}-${each.key}-5xx"
+  comparison_operator = "GreaterThanThreshold"
+  evaluation_periods  = 2
+  metric_name         = "HTTPCode_Target_5XX_Count"
+  namespace           = "AWS/ApplicationELB"
+  period              = 60
+  statistic           = "Sum"
+  threshold           = local.error_thresholds[each.key]
+  alarm_description   = "${each.key} 5XX count elevated"
+  treat_missing_data  = "notBreaching"
+  dimensions = {
+    LoadBalancer = var.alb_arn_suffix
+    TargetGroup  = lookup(var.target_group_arn_suffixes, each.key, "")
+  }
+  tags = var.tags
+}
+
 resource "aws_cloudwatch_metric_alarm" "control_plane_tasks" {
   alarm_name          = "${var.name_prefix}-control-plane-task-count"
   comparison_operator = "LessThanThreshold"
@@ -188,25 +358,7 @@ resource "aws_cloudwatch_metric_alarm" "control_plane_tasks" {
   tags = var.tags
 }
 
-resource "aws_cloudwatch_metric_alarm" "cv_service_cpu" {
-  alarm_name          = "${var.name_prefix}-cv-service-cpu"
-  comparison_operator = "GreaterThanThreshold"
-  evaluation_periods  = 3
-  metric_name         = "CPUUtilization"
-  namespace           = "AWS/ECS"
-  period              = 60
-  statistic           = "Average"
-  threshold           = 85
-  alarm_description   = "cv-service CPU > 85%"
-  dimensions = {
-    ClusterName = var.ecs_cluster_name
-    ServiceName = "cv-service"
-  }
-  tags = var.tags
-}
-
-# Review-queue depth — control-plane / cv-service emit PRISM/ReviewQueueDepth via EMF.
-# Alarm is wired now; metric population lands with production emitters (Phase 10 ops).
+# Populated by control-plane EMF when PRISM_ENV=aws (see prism_control.metrics).
 resource "aws_cloudwatch_metric_alarm" "review_queue_depth" {
   alarm_name          = "${var.name_prefix}-review-queue-depth"
   comparison_operator = "GreaterThanThreshold"
@@ -222,13 +374,20 @@ resource "aws_cloudwatch_metric_alarm" "review_queue_depth" {
 }
 
 output "dashboard_name" { value = aws_cloudwatch_dashboard.prism.dashboard_name }
+output "service_dashboard_names" {
+  value = { for k, d in aws_cloudwatch_dashboard.service : k => d.dashboard_name }
+}
 output "alarm_names" {
-  value = [
-    aws_cloudwatch_metric_alarm.alb_5xx.alarm_name,
-    aws_cloudwatch_metric_alarm.alb_latency.alarm_name,
-    aws_cloudwatch_metric_alarm.rds_cpu.alarm_name,
-    aws_cloudwatch_metric_alarm.control_plane_tasks.alarm_name,
-    aws_cloudwatch_metric_alarm.cv_service_cpu.alarm_name,
-    aws_cloudwatch_metric_alarm.review_queue_depth.alarm_name,
-  ]
+  value = concat(
+    [
+      aws_cloudwatch_metric_alarm.alb_5xx.alarm_name,
+      aws_cloudwatch_metric_alarm.alb_latency.alarm_name,
+      aws_cloudwatch_metric_alarm.rds_cpu.alarm_name,
+      aws_cloudwatch_metric_alarm.control_plane_tasks.alarm_name,
+      aws_cloudwatch_metric_alarm.review_queue_depth.alarm_name,
+    ],
+    [for a in aws_cloudwatch_metric_alarm.service_cpu : a.alarm_name],
+    [for a in aws_cloudwatch_metric_alarm.service_latency : a.alarm_name],
+    [for a in aws_cloudwatch_metric_alarm.service_5xx : a.alarm_name],
+  )
 }

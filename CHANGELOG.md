@@ -4,6 +4,14 @@ All notable changes to PRISM are documented here.
 
 ## [Unreleased]
 
+### Phase 10 — Observability & security
+
+- OpenTelemetry (`prism-otel`) through all ECS-bound services + local collector `:9106`
+- Per-service CloudWatch LES dashboards/alarms; ReviewQueueDepth EMF from control-plane
+- Secrets Manager 30-day rotation (closes Phase 6 `CKV2_AWS_57` deferral)
+- IAM least-privilege audit + WAF OWASP Top 10 review (SQLi + IP reputation rules)
+- Load test script + recorded results for activation-gateway + cockpit API surface
+
 ### Phase 9 — AI copilot (Ask PRISM)
 
 - Tool-grounded `ai-copilot` on `:9104` (warehouse / CV findings / work orders)
