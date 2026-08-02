@@ -165,3 +165,16 @@ def test_azure_readme_has_test_it_yourself() -> None:
     assert "Test it yourself" in text
     assert "make phase7-check" in text
     assert "terraform validate" in text
+
+
+def test_adr003_and_failover_runbook_are_real() -> None:
+    adr = ROOT / "docs/adr/003-azure-dr-two-cloud-tradeoff.md"
+    runbook = ROOT / "docs/runbooks/azure-dr-failover.md"
+    index = (ROOT / "docs/adr/index.md").read_text(encoding="utf-8")
+    rb_index = (ROOT / "docs/runbooks/README.md").read_text(encoding="utf-8")
+    assert adr.is_file() and adr.stat().st_size > 500
+    assert runbook.is_file() and runbook.stat().st_size > 500
+    assert "003-azure-dr-two-cloud-tradeoff.md" in index
+    assert "azure-dr-failover.md" in rb_index
+    assert "marginal" in adr.read_text(encoding="utf-8").lower()
+    assert "PRISM_ACTIVATION_GOLD_ROOT" in runbook.read_text(encoding="utf-8")

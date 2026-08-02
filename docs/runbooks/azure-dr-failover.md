@@ -1,120 +1,203 @@
 # Runbook — Fail over activation-gateway to the Azure lakehouse mirror
 
-**Audience:** on-call / platform operator (human only)  
-**Related:** [ADR-003](../adr/003-azure-dr-two-cloud-tradeoff.md), `infra/terraform/azure/`  
-**Targets:** RPO ≈ **15 minutes** (mirror job), RTO ≈ **4 hours** (this procedure)
+**Audience:** human operator (never CI / never agents)  
+**Related:** [ADR-003](../adr/003-azure-dr-two-cloud-tradeoff.md), `infra/terraform/azure/`, `activation-gateway/`  
+**Targets (if mirror is live):** RPO ≈ **15 minutes** · RTO ≈ **4 hours**
 
-## When to use
+## Goal
 
-AWS S3 gold (or the AWS activation path) is unavailable long enough that serving
-analytics from the **Azure ADLS Gen2 mirror** is better than waiting.
+Keep **analytics reads** working when AWS S3 gold (or the AWS activation path)
+is unavailable, by serving gold from the **ADLS Gen2 mirror** and telling
+activation-gateway to stop preferring Redshift.
 
-Do **not** use this for routine deploys or partial ECS outages that still leave
-S3 gold readable.
+## What breaks in the meantime
 
-## What fails over / what does not
+Until failover completes — and partially even after:
 
-| Component | Failover behavior |
-|-----------|-------------------|
-| Lakehouse **gold** (parquet / tables) | Served from `abfss://gold@<sa>.dfs.core.windows.net/` |
-| activation-gateway process | Same binary; **config / routing** change only |
-| Snowflake adapter | Prefer: re-activate gold URI on Azure-accessible storage (or Databricks SQL) |
-| Redshift adapter | **Does not fail over to Azure.** Mark Redshift degraded; do not pretend. |
-| control-plane / CV / ingestion | Out of scope for this runbook (AWS-native). Analytics read path only. |
+| Broken / degraded | Why |
+|-------------------|-----|
+| **Redshift activate/query** | AWS-only. No Azure equivalent. Mark degraded; do not route `warehouse=auto` there. |
+| **Freshness** | Mirror lags by up to RPO; post-failover numbers may be minutes behind last AWS gold. |
+| **Writes / new gold** | Ingestion + lakehouse on AWS should be paused to avoid split-brain. No new gold until failback or a deliberate Azure write path (out of scope). |
+| **control-plane, CV, review queue** | Still on AWS. This runbook does **not** move OLTP or CV. |
+| **Callers hard-coded to Redshift** | They fail until they use `warehouse=snowflake` / `auto` after you flip primary. |
 
 ## Preconditions
 
-1. Azure DR stack applied (`terraform apply` out-of-band — never from CI).
-2. Replication job has been succeeding (check Databricks job runs; lag ≤ RPO).
-3. You have:
-   - `terraform output gold_abfss_uri` (or known ADLS gold URI)
-   - ability to restart / reconfigure activation-gateway (ECS task def / compose env)
-   - Snowflake or Databricks SQL credentials for DR serving (not Redshift)
+1. Azure DR was **actually applied** (human `terraform apply`) and the
+   replication job has been running.
+2. You can read:
+   - `gold_abfss_uri` → `abfss://gold@<storage>.dfs.core.windows.net/`
+   - Databricks workspace URL / job run history
+3. You can change activation-gateway config and restart it (ECS task definition
+   or local compose).
+4. Snowflake (or Databricks SQL behind the Snowflake-shaped adapter path) is
+   reachable for DR serving.
 
-## Procedure
+If Azure was never applied (portfolio default per ADR-003), **stop** — there is
+nothing to fail over to. Restore AWS or accept analytics downtime.
 
-### 1. Declare incident and freeze writes (≈ 15 min)
+---
 
-1. Announce AWS → Azure analytics failover in the incident channel.
-2. Stop or pause producers that would diverge gold if AWS partially returns
-   (ingestion / lakehouse jobs) — avoid split-brain.
-3. Record wall-clock start (RTO timer).
+## Failover procedure
 
-### 2. Verify mirror freshness (≈ 30–60 min)
+### 1. Declare and freeze writes (~15 min)
 
-1. Open Azure Databricks workspace (`terraform output databricks_workspace_url`).
-2. Confirm last successful `prism-*-lakehouse-mirror` run timestamp ≤ **RPO**.
-3. Spot-check critical gold tables under the ADLS gold container (row counts /
-   max partition date vs last known good on AWS if still readable read-only).
-4. If lag **> RPO**, either wait for a manual job trigger or abort failover
-   (stale gold may be worse than downtime).
+1. Incident channel: “AWS analytics → Azure gold mirror failover started.”
+2. Pause ingestion / lakehouse jobs that publish to AWS gold.
+3. Note start time (RTO clock).
 
-### 3. Repoint activation-gateway gold (≈ 30–60 min)
+### 2. Confirm the mirror is good enough (~30–60 min)
 
-activation-gateway resolves gold via env / activate `gold_uri` (see
-`activation-gateway` config: `PRISM_ACTIVATION_GOLD_ROOT`, activate request body).
+1. Databricks → Jobs → `prism-<env>-lakehouse-mirror` → last **successful** run.
+2. Lag must be ≤ RPO (default 15m). If worse, run the job once manually or
+   **abort** (serving stale gold can be worse than waiting on AWS).
+3. Spot-check at least one critical table under the gold container (e.g.
+   `asset_daily_metrics` partition date / row count sanity).
 
-**ECS / prod-shaped:**
+### 3. Repoint activation-gateway at Azure gold (~30–60 min)
 
-1. Set the task definition / secrets so gold reads use the Azure mirror, e.g.
-   - `PRISM_ACTIVATION_GOLD_ROOT=<abfss gold path or gateway-supported URI form>`
-   - or require callers to pass `gold_uri` = `abfss://gold@<storage>.dfs.core.windows.net/…`
-2. Set routing primary away from Redshift:
-   - Prefer `warehouse=snowflake` or activate Snowflake against the Azure gold URI
-   - Update routing state (`PRISM_ACTIVATION_ROUTING_PATH` / registry) so
-     `warehouse=auto` does **not** select Redshift while AWS is down
-3. Redeploy activation-gateway; wait for health `GET /health`.
+activation-gateway chooses gold from, in order:
 
-**Local compose (drill only):**
+1. Activate request field `gold_uri`, or
+2. `PRISM_ACTIVATION_GOLD_ROOT` + table name (`config.resolve_gold_uri`), and
+3. Routing primary in `PRISM_ACTIVATION_ROUTING_PATH`
+   (default `.data/activation/routing.json`) when callers use `warehouse=auto`.
 
-```bash
-# Example drill — paths must match your applied outputs
-export PRISM_ACTIVATION_GOLD_ROOT="abfss://gold@<storage_account>.dfs.core.windows.net/"
-# Force non-Redshift primary for the drill:
-curl -sS http://localhost:9103/v1/activate -H 'content-type: application/json' -d "{
-  \"gold_table\": \"asset_daily_metrics\",
-  \"warehouse\": \"snowflake\",
-  \"gold_uri\": \"${PRISM_ACTIVATION_GOLD_ROOT}asset_daily_metrics\",
-  \"set_primary\": true
-}"
-curl -sS http://localhost:9103/health
-```
+**A. Set gold root to the ADLS mirror**
 
-> Mock mode cannot speak real `abfss://`. Drills against real Azure require
-> human credentials and are **out of CI** (ADR-001).
-
-### 4. Smoke query (≈ 30 min)
+From the applied Azure stack:
 
 ```bash
-curl -sS http://localhost:9103/v1/query -H 'content-type: application/json' -d '{
-  "table": "asset_daily_metrics",
-  "warehouse": "auto",
-  "sql": "SELECT asset_id, ping_count FROM asset_daily_metrics ORDER BY asset_id LIMIT 20"
-}'
+# Human workstation with state / known outputs — not CI
+cd infra/terraform/azure
+GOLD_ABFSS="$(terraform output -raw gold_abfss_uri)"
+echo "$GOLD_ABFSS"
+# example: abfss://gold@prismdevlakedrXXXX.dfs.core.windows.net/
 ```
 
-Expect `warehouse` ≠ `redshift` while AWS is unavailable. Compare to a known
-fixture or last good result set for structural sanity (not bit-identical RPO).
+ECS / prod task definition (or secrets):
 
-### 5. Communicate and watch (remaining RTO budget)
+```text
+PRISM_ACTIVATION_GOLD_ROOT=<GOLD_ABFSS>
+PRISM_ACTIVATION_MODE=<production mode for your deploy — not mock>
+# Keep routing file on durable storage:
+PRISM_ACTIVATION_ROUTING_PATH=/data/activation/routing.json
+```
 
-1. Tell consumers: analytics on Azure mirror; Redshift deactivated; freshness
-   may trail by up to RPO.
-2. Watch Databricks job + gateway error rates.
-3. Do **not** re-enable AWS writers until failback plan is agreed.
+Redeploy / restart activation-gateway. Confirm:
+
+```bash
+curl -sS https://<gateway-host>:9103/health
+# expect status ok; note warehouse health map
+```
+
+**B. Force primary off Redshift**
+
+Activate Snowflake (or your non-Redshift warehouse) against the mirrored table
+and set it primary:
+
+```bash
+GATEWAY="https://<gateway-host>:9103"   # or http://localhost:9103 for a drill
+GOLD_URI="${GOLD_ABFSS}lakehouse/gold/asset_daily_metrics"
+# If your mirror layout is container-root tables, use:
+# GOLD_URI="${GOLD_ABFSS}asset_daily_metrics"
+
+curl -sS "$GATEWAY/v1/activate" \
+  -H 'content-type: application/json' \
+  -d "{
+    \"gold_table\": \"asset_daily_metrics\",
+    \"warehouse\": \"snowflake\",
+    \"gold_uri\": \"${GOLD_URI}\",
+    \"set_primary\": true
+  }"
+```
+
+Confirm routing file / API no longer selects Redshift for `auto`:
+
+```bash
+curl -sS "$GATEWAY/v1/warehouses"
+# Redshift should look unhealthy or non-primary; Snowflake (or DR target) primary
+```
+
+**C. Optional: edit routing state directly**
+
+If activate cannot reach Snowflake yet but you must stop `auto` → Redshift,
+update `routing.json` primary warehouse field to `snowflake` (shape owned by
+`activation-gateway` routing registry) and restart the gateway. Prefer the
+activate API when possible so the registry stays consistent.
+
+### 4. Smoke query (~30 min)
+
+```bash
+curl -sS "$GATEWAY/v1/query" \
+  -H 'content-type: application/json' \
+  -d '{
+    "table": "asset_daily_metrics",
+    "warehouse": "auto",
+    "sql": "SELECT asset_id, ping_count FROM asset_daily_metrics ORDER BY asset_id LIMIT 20"
+  }'
+```
+
+Pass criteria:
+
+- HTTP 200 with rows (or empty set if table legitimately empty)
+- Response warehouse is **not** `redshift`
+- Counts/shape match last known good within RPO expectations
+
+### 5. Communicate (~remainder of RTO window)
+
+Tell consumers:
+
+- Analytics are on the **Azure gold mirror**
+- **Redshift is down** for the incident
+- Data may lag AWS by up to RPO
+- Writes remain frozen until failback
+
+---
 
 ## Failback (AWS restored)
 
-1. Confirm AWS S3 gold healthy and lakehouse jobs caught up.
-2. Pause Azure mirror job (avoid clobbering fresher AWS data on failback sync).
-3. Repoint `PRISM_ACTIVATION_GOLD_ROOT` / activate URIs back to `s3://…`.
-4. Restore routing primary (Redshift and/or Snowflake per ADR-002).
-5. Resume mirror job for warm standby.
-6. Post-incident: note actual RPO lag and RTO elapsed; update this runbook if
-   steps were wrong.
+1. Confirm AWS S3 gold is healthy; lakehouse caught up.
+2. **Pause** the Azure mirror job (do not overwrite fresher AWS data if you
+   later reverse-sync).
+3. Set `PRISM_ACTIVATION_GOLD_ROOT` back to the AWS gold root
+   (e.g. `s3://<prism-*-gold>/lakehouse/gold/` or your standard URI).
+4. Restart activation-gateway.
+5. Re-activate preferred warehouses and restore primary:
+
+```bash
+# Example: put Redshift back as primary if that is your steady state
+curl -sS "$GATEWAY/v1/activate" -H 'content-type: application/json' -d "{
+  \"gold_table\": \"asset_daily_metrics\",
+  \"warehouse\": \"redshift\",
+  \"gold_uri\": \"s3://<aws-gold-bucket>/lakehouse/gold/asset_daily_metrics\",
+  \"set_primary\": true
+}"
+# Optionally keep Snowflake activated with set_primary: false (ADR-002)
+```
+
+6. Smoke `warehouse=auto` query again; confirm Redshift (or chosen primary).
+7. Resume Azure mirror job for warm standby.
+8. Resume ingestion / lakehouse writers.
+9. Write down actual RPO lag and RTO elapsed; patch this runbook if steps lied.
+
+---
+
+## Local drill note (no real Azure)
+
+`PRISM_ACTIVATION_MODE=mock` maps `s3://` to `.data/` and does **not** speak
+real `abfss://`. A full Azure failover drill needs human Azure credentials and
+is out of CI (ADR-001). Structural validation of the Terraform + this runbook:
+
+```bash
+make phase7-check
+test -f docs/runbooks/azure-dr-failover.md
+test -f docs/adr/003-azure-dr-two-cloud-tradeoff.md
+```
 
 ## Explicit non-goals
 
-- Automated DNS/traffic flip with no human.
-- CV review, control-plane OLTP, or ingestion continuing on Azure.
-- Guaranteeing Redshift queries during an AWS outage.
+- Automated DNS flip with no human
+- Failing over control-plane / CV / ingestion to Azure
+- Promising Redshift availability during an AWS outage

@@ -1,81 +1,101 @@
 # ADR 003 — Azure warm-standby DR vs two-cloud operational cost
 
-**Status:** Accepted  
+**Status:** Accepted (revisit at production scale)  
 **Date:** 2026-08  
 **Phases:** 7+
 
 ## Context
 
-PRISM's primary lakehouse and activation path run on **AWS** (S3 medallion, ECS
-services, RDS, Redshift/Snowflake activation). Enterprise RFPs often ask for a
-**documented DR story** outside the primary cloud. The Phase 0 architecture
-named **Azure Databricks + ADLS Gen2** as a warm standby.
+PRISM’s primary path is AWS: S3 lakehouse, ECS services, RDS, and
+activation-gateway into Redshift and/or Snowflake. The Phase 0 architecture
+sketch named **Azure Databricks + ADLS Gen2** as a warm-standby DR mirror so
+enterprise questionnaires could point at a “second cloud” story.
 
-Running two clouds is not free — in money or attention. This ADR records the
-tradeoff honestly so we neither under-build DR nor pretend a second cloud is
-"basically free insurance."
+Building that mirror is cheap in Terraform lines and expensive in everything
+else. This ADR weighs the **ongoing** cost of a second cloud against the DR
+benefit for a project that is still portfolio-stage — not a live multi-tenant
+fleet with contractual RTO.
+
+## What a second cloud actually costs
+
+Even as a warm standby (not active-active), Azure DR adds a permanent surface:
+
+| Surface | What you keep paying / staffing |
+|---------|----------------------------------|
+| **Second Databricks workspace** | Workspace SKU, metastore/admin identity, job definitions, cluster policies, upgrade cadence |
+| **ADLS Gen2 storage** | Mirrored gold (+ optional bronze/silver), versioning/soft-delete, access policies |
+| **Ongoing replication job** | Scheduled compute every RPO interval, S3 egress, failure alerts, credential rotation for cross-cloud read |
+| **Doubled ops / security** | Entra ID + Azure RBAC next to AWS IAM; second secrets store; second billing account; second place to misconfigure public access; runbooks and drills |
+| **Cognitive load** | On-call must know two providers; incidents span two consoles; “is gold fresh on Azure?” becomes a standing question |
+
+Warm standby is cheaper than hot dual-write. It is **not** free, and most months
+you pay for a copy you never serve.
+
+## What DR benefit you actually get
+
+| Benefit | Honest scope |
+|---------|----------------|
+| Second-provider copy of gold | Useful if AWS S3/region is unavailable **and** someone runs the failover runbook |
+| Analytics continuity | Possible via activation-gateway → Snowflake / Databricks SQL against `abfss://` gold |
+| RFP / board checkbox | “We have a documented Azure warm standby” |
+
+| Non-benefit | Why |
+|-------------|-----|
+| Automatic failover | Cutover is human-gated (hours, not seconds) |
+| Redshift continuity | Redshift does not run on Azure; that adapter stays down |
+| Full platform DR | control-plane, CV, ingestion remain AWS-native in this design |
+| Substitute for AWS resilience | Multi-AZ, S3 versioning, and backups still do the real work day-to-day |
+
+Default targets if the mirror is kept: **RPO ≈ 15 minutes** (job cadence),
+**RTO ≈ 4 hours** (manual procedure in
+[azure-dr-failover.md](../runbooks/azure-dr-failover.md)).
 
 ## Decision
 
-1. Keep a **warm-standby** Azure footprint (Databricks workspace + ADLS Gen2),
-   not a hot active-active dual write.
-2. Replicate lakehouse zones on a **scheduled job** (default every **15 minutes**
-   → **RPO ≈ 15m**). Failover is **human-gated** (runbook RTO target **≈ 4h**).
-3. Treat Azure DR as **optional capacity you pay for continuity theater that
-   can become real**, not as a second production control plane.
-4. Accept that **Redshift does not fail over to Azure**. DR serving goes through
-   activation-gateway repointed at the ADLS gold URI (Snowflake Iceberg and/or
-   Databricks SQL), per [azure-dr-failover.md](../runbooks/azure-dr-failover.md).
+**For the current portfolio-stage build, the tradeoff is marginal.**
 
-## Cost of two clouds (what you actually pay)
+We still ship the Azure Terraform modules and runbook so the architecture
+sketch is not a fiction, and so a future production push has something concrete
+to enable. We do **not** treat Azure DR as a justified standing production
+expense today.
 
-| Cost type | Warm standby (this design) | Hot dual-cloud (rejected) |
-|-----------|----------------------------|---------------------------|
-| ADLS storage | ~1× gold (+ optional bronze) on **LRS** | Full multi-region + always-fresh dual write |
-| Databricks | Workspace idle + **job clusters** on schedule | Always-on SQL warehouses / interactive clusters |
-| Data egress | S3 → internet → Azure on each mirror run | Continuous bidirectional sync |
-| IAM / secrets | Extra Entra ID, storage credentials, job SPs | Double every rotation / audit surface |
-| People | Runbook drills, two provider skill sets | Two on-call graphs, two billing owners |
+Practical stance:
 
-Qualitative only — no fabricated $/month in CI (ADR-001). The important claim is
-directional: **warm standby is cheaper than active-active, still not free**, and
-most months you pay for a mirror you hope never to serve from.
+1. **Code exists; spend is optional.** Validate/tflint/checkov in CI (ADR-001).
+   Humans apply Azure only when a real drill or customer requirement pays for it.
+2. Prefer **AWS-region DR / backups** as the default resilience story until
+   production traffic and contracts demand a second cloud.
+3. If Azure is applied, keep it **warm standby + manual failover** — never market
+   it as multi-cloud HA.
+4. **Revisit** when any of these become true: contractual RTO/RPO with customers,
+   sustained production analytics revenue, or a buyer who hard-requires
+   second-provider DR in writing.
 
-## Benefit (what you actually get)
-
-- A **second cloud** copy of gold for board-level / customer DR questionnaires.
-- Ability to serve analytics if AWS region or S3 gold is unavailable, after a
-  **manual** cutover measured in hours, not seconds.
-- Isolation from a single-provider control-plane outage (Azure Entra + Databricks
-  vs AWS IAM + ECS).
-
-What you do **not** get:
-
-- Automatic failover.
-- Feature parity for Redshift-native tenants during an AWS outage.
-- Zero RPO / near-zero RTO without paying hot-standby prices.
-- A substitute for backups, AWS multi-AZ, or S3 versioning — those remain primary.
+An honest future outcome of that revisit is “turn the Azure footprint off and
+delete the subscription resources.” That is allowed. This ADR is not obligated
+to justify the cloud we scaffolded.
 
 ## Alternatives considered
 
-| Option | Why not (for PRISM now) |
-|--------|-------------------------|
-| No Azure DR | Fails common enterprise DR checkbox; higher concentration risk |
-| Hot active-active on Azure | Roughly doubles platform cost and operational surface; not justified pre-revenue |
-| AWS-only DR (second region) | Cheaper ops (one cloud) but fails "second provider" asks some buyers make |
-| Cold vault / Glacier-only copy | Meets backup, fails "stand up analytics in hours" RTO |
+| Option | Assessment now |
+|--------|----------------|
+| No Azure DR at all | Best cost fit for portfolio stage; weaker second-provider story |
+| Scaffold only (this phase) | Documents the design; spend stays zero until apply — **chosen** |
+| Applied warm standby with live replication | Justified when drills/contracts pay for the doubled surface |
+| Hot active-active dual cloud | Rejected — roughly doubles cost and ops for little portfolio-stage gain |
+| AWS second-region only | Often the better *first* production DR move; one cloud to operate |
 
 ## Consequences
 
-- Terraform under `infra/terraform/azure/` stays **validate-only in CI**; humans
-  apply and import the Databricks job.
-- Product docs must say **warm standby + manual failover**, never "multi-cloud HA."
-- If DR drills never happen, the spend is largely waste — schedule a yearly
-  tabletop using the runbook or drop the Azure footprint.
+- Docs must say **optional warm standby**, not “we run multi-cloud HA.”
+- activation-gateway failover steps live in the runbook; Redshift is explicitly
+  out of scope during an AWS outage.
+- If nobody schedules a yearly tabletop, the scaffold is documentation — and
+  that may be the correct amount of DR for this stage.
 
 ## References
 
 - [ADR-001](001-cost-safety-policy.md) — no apply / no paid APIs in CI  
-- [ADR-002](002-multi-warehouse-activation.md) — activation contract across warehouses  
+- [ADR-002](002-multi-warehouse-activation.md) — warehouse activation contract  
 - [azure-dr-failover.md](../runbooks/azure-dr-failover.md)  
-- `infra/terraform/azure/` (RPO/RTO outputs)
+- `infra/terraform/azure/`

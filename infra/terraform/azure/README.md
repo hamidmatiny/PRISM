@@ -43,11 +43,19 @@ tflint --init && tflint --format compact
 cd ../../..
 make checkov-azure
 
-# Or the full Phase 7 local gate (lint + unit tests + both stacks + tflint + checkov):
+# Full Phase 7 local gate (lint + unit tests + validate + tflint + checkov, both stacks):
 make phase7-check
 ```
 
-Confirm RPO/RTO outputs are wired (after validate-capable init):
+Confirm docs exist on the branch you are looking at:
+
+```bash
+test -f docs/adr/003-azure-dr-two-cloud-tradeoff.md && echo 'ADR-003: ok'
+test -f docs/runbooks/azure-dr-failover.md && echo 'runbook: ok'
+grep -n '003' docs/adr/index.md
+```
+
+Confirm RPO/RTO locals (after init above):
 
 ```bash
 cd infra/terraform/azure
@@ -55,13 +63,6 @@ terraform console <<'EOF'
 local.rpo_rto
 EOF
 # Expect rpo_minutes=15, rto_hours=4 (defaults)
-```
-
-Read the failover path (no cloud):
-
-```bash
-less docs/runbooks/azure-dr-failover.md
-less docs/adr/003-azure-dr-two-cloud-tradeoff.md
 ```
 
 ## Apply (humans only)
