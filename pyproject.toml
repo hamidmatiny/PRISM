@@ -1,0 +1,34 @@
+[project]
+name = "prism"
+version = "0.0.0"
+description = "PRISM — Visual Fleet Intelligence & Multi-Warehouse Analytics Platform"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = []
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=8.0",
+  "ruff>=0.6",
+]
+
+# Monorepo root is not a single installable package; tools only.
+[tool.setuptools]
+packages = []
+
+[tool.pytest.ini_options]
+testpaths = ["tests/unit"]
+pythonpath = ["."]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+extend-exclude = [
+  ".terraform",
+  "node_modules",
+  "dbt/target",
+  "dbt/dbt_packages",
+]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]

@@ -1,0 +1,97 @@
+# PRISM CI — lint, unit tests, terraform validate / tflint / checkov.
+# ADR-001: never terraform apply, never call real cloud / paid APIs / GPU.
+name: CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  PYTHON_VERSION: "3.12"
+
+jobs:
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install lint tools
+        run: pip install --upgrade pip ruff
+
+      - name: Ruff check
+        run: ruff check .
+
+      - name: Ruff format (check)
+        run: ruff format --check .
+
+  test:
+    name: Unit tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install test deps
+        run: pip install --upgrade pip pytest
+
+      - name: Run unit tests
+        run: pytest -q tests/unit
+
+  terraform:
+    name: Terraform validate / tflint / checkov
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        stack: [aws, azure]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.9.8"
+          terraform_wrapper: false
+
+      - name: Terraform init (no backend)
+        working-directory: infra/terraform/${{ matrix.stack }}
+        run: terraform init -backend=false
+
+      - name: Terraform validate
+        working-directory: infra/terraform/${{ matrix.stack }}
+        run: terraform validate
+
+      - name: Setup tflint
+        uses: terraform-linters/setup-tflint@v4
+        with:
+          tflint_version: v0.54.0
+
+      - name: tflint init
+        working-directory: infra/terraform/${{ matrix.stack }}
+        run: tflint --init
+
+      - name: tflint
+        working-directory: infra/terraform/${{ matrix.stack }}
+        run: tflint --format compact
+
+      - name: Setup checkov
+        uses: bridgecrewio/checkov-action@v12
+        with:
+          directory: infra/terraform/${{ matrix.stack }}
+          framework: terraform
+          soft_fail: false
+          # Phase 0 scaffold is null_resource only; real CIS checks land with Phase 6/7 modules.
+          skip_check: CKV_TF_1

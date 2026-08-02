@@ -1,0 +1,15 @@
+---
+description: Phase completion checklist before declaring a PRISM phase done
+alwaysApply: true
+---
+
+# Phase completion checklist
+
+A phase is **not complete** until:
+
+1. Deliverables for that phase from the build brief are present and scoped correctly (no N+2 leakage).
+2. Tests added or stubbed for the phase pass locally (and CI jobs for what exists are green when runnable).
+3. `PHASE_N_COMPLETION.md` exists at the repo root summarizing what shipped, what was deferred, and how to verify.
+4. Component / root `README.md` and `ARCHITECTURE.md` are updated if ports, wiring, or layout changed.
+5. ADR-001 cost-safety was respected (no real cloud apply, no paid API calls in CI paths).
+6. Stop and wait for explicit user go-ahead before starting the next phase.

@@ -1,0 +1,23 @@
+openapi: 3.1.0
+info:
+  title: PRISM Activation Contract
+  version: 0.0.0
+  description: >
+    Stub OpenAPI surface for Phase 0. Full activate/query paths land in Phase 4.
+paths:
+  /health:
+    get:
+      summary: Contract stub health
+      operationId: health
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [status]
+                properties:
+                  status:
+                    type: string
+                    enum: [ok]

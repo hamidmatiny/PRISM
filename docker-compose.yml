@@ -1,0 +1,26 @@
+# PRISM local development stack
+# Phase 0: placeholder health stub only — real services land in later phases.
+# ADR-001: zero cloud credentials required for `docker compose up`.
+#
+# Host port range: 9100–9199 (see .cursor/rules/monorepo.mdc)
+
+name: prism
+
+services:
+  # -------------------------------------------------------------------------
+  # Phase 0 — tiny static stub so compose is non-empty and verifiable.
+  # Replaced / joined by real services as phases land.
+  # -------------------------------------------------------------------------
+  foundation-stub:
+    image: nginx:1.27-alpine
+    container_name: prism-foundation-stub
+    ports:
+      - "9199:80"
+    volumes:
+      - ./examples/foundation-stub:/usr/share/nginx/html:ro
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1/"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+      start_period: 5s

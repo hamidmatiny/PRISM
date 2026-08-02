@@ -1,0 +1,31 @@
+---
+description: PRISM cost-safety — CI never touches real cloud, paid APIs, or GPU inference (ADR-001)
+alwaysApply: true
+---
+
+# Cost-safety policy (ADR-001)
+
+Hard rules. Do not re-litigate in chat.
+
+## Forbidden in CI and generated test paths
+
+- Do **not** call real AWS / Azure / Databricks / Redshift / Snowflake endpoints.
+- Do **not** provision cloud infrastructure (`terraform apply`, cloud CLIs that create resources).
+- Do **not** call paid LLM / vision APIs or run GPU inference in CI.
+- Do **not** add GitHub Actions steps that require live cloud credentials for the default PR matrix.
+
+## Allowed in CI
+
+- Structural validation: `terraform validate`, `tflint`, `checkov`, OpenAPI/schema lint.
+- Local emulators: DuckDB (warehouse SQL), LocalStack (AWS), moto (boto3).
+- CPU-only / fixture-based unit and integration tests.
+- `terraform plan` as an optional review artifact when credentials are explicitly scoped and still never apply.
+
+## Local development
+
+- `docker compose up` / `make up` must work with **zero** cloud credentials.
+- Cloud is an additive overlay, never a hard dependency for the local demo path.
+
+## When a phase seems to need real cloud
+
+Stop and ask. Do not improvise a paid workaround. Document a validate-only path and a manual runbook instead.

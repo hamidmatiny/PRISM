@@ -1,0 +1,55 @@
+---
+description: PRISM monorepo layout, README gate, phase commits, ports
+alwaysApply: true
+---
+
+# Monorepo conventions
+
+## Layout
+
+Keep code in the owning component directory. Do not invent parallel top-level trees.
+
+- Contracts → `contracts/`
+- Services → `ingestion/`, `cv-service/`, `activation-gateway/`, `control-plane/`, `ai-copilot/`, `cockpit/`
+- Data → `lakehouse/`, `dbt/`
+- Infra → `infra/terraform/{aws,azure}/`
+- Observability → `observability/`
+- Docs / ADRs → `docs/`
+
+## README gate
+
+Every **new top-level directory** must ship a `README.md` (purpose, how to run, ports, health check when applicable). Component READMEs stay accurate when ports, env vars, or entrypoints change.
+
+## Commit messages
+
+```text
+phase-N: <summary>
+fix(<component>): <summary>
+```
+
+Commit only when the user asks (unless a phase Definition of Done explicitly requires it).
+
+## Phase discipline
+
+- One phase per session unless the user explicitly says to continue.
+- Each phase ends with passing tests and `PHASE_N_COMPLETION.md`.
+- Do not pull Phase N+2 scope into Phase N.
+
+## Host ports
+
+**PRISM owns `9100–9199`.** Reserved map (extend in compose comments as services land):
+
+| Port | Service |
+|------|---------|
+| 9100 | control-plane |
+| 9101 | cockpit |
+| 9102 | cv-service |
+| 9103 | activation-gateway |
+| 9104 | ai-copilot |
+| 9105 | ingestion (status / metrics) |
+| 9106–9198 | future / observability |
+| 9199 | contract-stub / docs static |
+
+## Secrets
+
+Never commit secrets. Use `.env.example` + local `.env` / compose env injection.
