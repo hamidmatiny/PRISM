@@ -107,6 +107,15 @@ Terraform under `infra/terraform/aws/` (validate / tflint / checkov / plan only 
 
 Local `docker compose` remains the day-to-day path; Terraform does not replace it.
 
+## Digital twin cockpit (Phase 8)
+
+Vue 3 + Vite + Pinia UI on `:9101` with a dark control-room design system.
+Three.js WebGPURenderer (WebGL fallback) renders fleet assets whose color/glow
+reflects open work orders and unreviewed CV findings from the control-plane.
+Detail panel pulls telemetry through activation-gateway’s query contract, CV
+bounding boxes on fixture frames resolved by control-plane, and work-order
+history. An incident scrubber replays those events in time order.
+
 ## Azure DR path (Phase 7)
 
 Warm-standby Terraform under `infra/terraform/azure/` (validate / tflint / checkov only — never apply in CI):

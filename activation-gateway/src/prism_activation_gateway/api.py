@@ -4,7 +4,10 @@ from __future__ import annotations
 
 from typing import Any
 
+import os
+
 from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 
 from prism_activation_contract import (
     ActivateRequest,
@@ -50,6 +53,22 @@ def create_app(
     app.state.config = cfg
     app.state.adapters = adapters
     app.state.registry = routing
+
+    cors_origins = [
+        o.strip()
+        for o in os.environ.get(
+            "PRISM_CORS_ORIGINS",
+            "http://localhost:9101,http://127.0.0.1:9101",
+        ).split(",")
+        if o.strip()
+    ]
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=cors_origins,
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
 
     @app.get("/health", response_model=HealthResponse)
     def health() -> HealthResponse:

@@ -3,9 +3,12 @@
 from __future__ import annotations
 
 from datetime import datetime
+from pathlib import Path
 from typing import Any, Literal
 from uuid import uuid4
 
+from django.conf import settings
+from django.http import FileResponse
 from django.shortcuts import get_object_or_404
 from ninja import Field, NinjaAPI, Schema
 from ninja.errors import HttpError
@@ -22,7 +25,7 @@ from prism_control.rbac import (
     user_roles,
 )
 from review.models import InspectionFinding, ReviewDecision
-from review.queue import list_pending_envelopes
+from review.queue import list_pending_envelopes, load_pending_envelope
 from review.services import apply_decision, sync_pending_queue
 
 api = NinjaAPI(
@@ -62,6 +65,14 @@ class WorkOrderOut(Schema):
     title: str
     description: str
     status: str
+    created_at: datetime
+
+
+class BoundingBoxOut(Schema):
+    x: float
+    y: float
+    width: float
+    height: float
 
 
 class PendingEnvelopeOut(Schema):
@@ -74,6 +85,8 @@ class PendingEnvelopeOut(Schema):
     queue: str
     path: str
     reviewed: bool
+    bounding_box: BoundingBoxOut | None = None
+    detected_at: str | None = None
 
 
 class DecisionIn(Schema):
@@ -101,6 +114,7 @@ class FindingOut(Schema):
     gold_path: str
     frame_ref: str
     detected_at: datetime
+    bounding_box: BoundingBoxOut | None = None
 
 
 class AuditOut(Schema):
@@ -154,8 +168,11 @@ def create_asset(request, body: AssetIn):
 
 
 @api.get("/v1/work-orders", response=list[WorkOrderOut])
-def list_work_orders(request):
+def list_work_orders(request, asset_id: str | None = None):
     assert_roles(request, ROLE_VIEWER, ROLE_INSPECTOR, ROLE_FLEET_ADMIN)
+    qs = WorkOrder.objects.select_related("asset").all()
+    if asset_id:
+        qs = qs.filter(asset__asset_id=asset_id)
     return [
         {
             "work_order_id": w.work_order_id,
@@ -163,8 +180,9 @@ def list_work_orders(request):
             "title": w.title,
             "description": w.description,
             "status": w.status,
+            "created_at": w.created_at,
         }
-        for w in WorkOrder.objects.select_related("asset").all()
+        for w in qs
     ]
 
 
@@ -192,6 +210,7 @@ def create_work_order(request, body: WorkOrderIn):
         "title": wo.title,
         "description": wo.description,
         "status": wo.status,
+        "created_at": wo.created_at,
     }
 
 
@@ -213,6 +232,8 @@ def review_queue(request):
                 "queue": envelope.get("queue", ""),
                 "path": envelope.get("_path", ""),
                 "reviewed": finding.get("reviewed", False),
+                "bounding_box": finding.get("bounding_box"),
+                "detected_at": finding.get("detected_at"),
             }
         )
     return out
@@ -241,9 +262,77 @@ def list_findings(request, queue_status: str | None = None):
             "gold_path": f.gold_path,
             "frame_ref": f.frame_ref,
             "detected_at": f.detected_at,
+            "bounding_box": f.bounding_box,
         }
         for f in qs
     ]
+
+
+@api.get("/v1/findings/{finding_id}", response=FindingOut)
+def get_finding(request, finding_id: str):
+    """Single finding — prefers ORM row, falls back to live pending envelope."""
+    assert_roles(request, ROLE_VIEWER, ROLE_INSPECTOR, ROLE_FLEET_ADMIN)
+    try:
+        f = InspectionFinding.objects.select_related("asset").get(finding_id=finding_id)
+        return {
+            "finding_id": f.finding_id,
+            "asset_id": f.asset.asset_id,
+            "defect_class": f.defect_class,
+            "confidence": f.confidence,
+            "queue_status": f.queue_status,
+            "reviewed": f.reviewed,
+            "gold_path": f.gold_path,
+            "frame_ref": f.frame_ref,
+            "detected_at": f.detected_at,
+            "bounding_box": f.bounding_box,
+        }
+    except InspectionFinding.DoesNotExist:
+        pass
+    try:
+        envelope = load_pending_envelope(finding_id)
+    except FileNotFoundError as exc:
+        raise HttpError(404, str(exc)) from exc
+    finding = envelope["finding"]
+    return {
+        "finding_id": finding["finding_id"],
+        "asset_id": finding["asset_id"],
+        "defect_class": finding["defect_class"],
+        "confidence": finding["confidence"],
+        "queue_status": "pending",
+        "reviewed": finding.get("reviewed", False),
+        "gold_path": "",
+        "frame_ref": finding["frame_ref"],
+        "detected_at": finding["detected_at"],
+        "bounding_box": finding.get("bounding_box"),
+    }
+
+
+_FIXTURE_BY_CLASS = {
+    "dent": "dent_sample.png",
+    "crack": "crack_sample.png",
+    "tire_wear": "tire_wear_sample.png",
+    "sensor_obstruction": "sensor_obstruction_sample.png",
+    "anomaly": "anomaly_sample.png",
+}
+
+
+@api.get("/v1/frames/{frame_ref}")
+def get_frame(request, frame_ref: str, defect_class: str = "anomaly"):
+    """Serve the source frame for a CV finding.
+
+    Live camera bytes are not always retained on disk locally; we resolve the
+    cv-service fixture image for the finding's defect_class (same fixtures the
+    detector was exercised against). Continuity: class + frame_ref come from
+    real finding payloads.
+    """
+    assert_roles(request, ROLE_VIEWER, ROLE_INSPECTOR, ROLE_FLEET_ADMIN)
+    name = _FIXTURE_BY_CLASS.get(defect_class, "anomaly_sample.png")
+    path = Path(settings.CV_FIXTURE_IMAGES_DIR) / name
+    if not path.is_file():
+        raise HttpError(404, f"frame fixture missing for {frame_ref}: {path}")
+    # FileResponse needs a file handle (Path alone is not iterable in Django 5).
+    handle = path.open("rb")
+    return FileResponse(handle, content_type="image/png", filename=name)
 
 
 @api.post("/v1/review-queue/{finding_id}/decide", response=DecisionOut)

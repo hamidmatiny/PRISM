@@ -123,6 +123,7 @@ services:
       PRISM_ACTIVATION_GOLD_ROOT: /data/lakehouse/gold
       PRISM_ACTIVATION_FIXTURE_GOLD: /app/activation-gateway/fixtures/gold
       PRISM_ACTIVATION_ROUTING_PATH: /data/activation/routing.json
+      PRISM_CORS_ORIGINS: http://localhost:9101,http://127.0.0.1:9101
     volumes:
       - ./.data:/data
       - ./activation-gateway/fixtures:/fixtures:ro
@@ -153,6 +154,8 @@ services:
       PRISM_CV_REVIEW_PENDING_DIR: /data/cv-review-queue/pending
       PRISM_CV_REVIEW_DECIDED_DIR: /data/cv-review-queue/decided
       PRISM_CV_FINDINGS_GOLD_DIR: /data/lakehouse/gold/cv_findings
+      PRISM_CV_FIXTURE_IMAGES_DIR: /cv-fixtures
+      PRISM_CORS_ORIGINS: http://localhost:9101,http://127.0.0.1:9101
       PRISM_BOOTSTRAP_PASSWORD: ${PRISM_BOOTSTRAP_PASSWORD:-prism-local-dev}
       DJANGO_DEBUG: "0"
       DJANGO_ALLOWED_HOSTS: localhost,127.0.0.1,0.0.0.0
@@ -162,6 +165,7 @@ services:
       PRISM_Q_SYNC: "0"
     volumes:
       - ./.data:/data
+      - ./cv-service/fixtures/images:/cv-fixtures:ro
     healthcheck:
       test:
         [
@@ -174,6 +178,27 @@ services:
       timeout: 3s
       retries: 5
       start_period: 35s
+
+  # Phase 8 — Vue digital-twin cockpit (dev server; proxies to control-plane + activation).
+  cockpit:
+    image: node:22-alpine
+    container_name: prism-cockpit
+    working_dir: /app
+    command: ["sh", "-c", "npm install && npm run dev -- --host 0.0.0.0 --port 9101"]
+    ports:
+      - "9101:9101"
+    environment:
+      # Browser uses same-origin /proxy/*; Vite proxies to compose DNS names.
+      CONTROL_PLANE_PROXY: http://control-plane:9100
+      ACTIVATION_PROXY: http://activation-gateway:9103
+    volumes:
+      - ./cockpit:/app
+      - cockpit_node_modules:/app/node_modules
+    depends_on:
+      control-plane:
+        condition: service_healthy
+      activation-gateway:
+        condition: service_healthy
 
   control-plane-worker:
     build:
@@ -259,3 +284,4 @@ services:
 
 volumes:
   localstack-data:
+  cockpit_node_modules:

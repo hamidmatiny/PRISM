@@ -36,6 +36,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
+    "prism_control.cors.SimpleCorsMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
@@ -124,3 +125,11 @@ PRISM_CONTROL_PLANE_PORT = int(os.environ.get("PRISM_CONTROL_PLANE_PORT", "9100"
 
 # Bootstrap demo users (management command / container entrypoint).
 BOOTSTRAP_PASSWORD = os.environ.get("PRISM_BOOTSTRAP_PASSWORD", "prism-local-dev")
+
+# CV fixture frames for cockpit overlays when live camera bytes are not on disk.
+CV_FIXTURE_IMAGES_DIR = Path(
+    os.environ.get(
+        "PRISM_CV_FIXTURE_IMAGES_DIR",
+        str(BASE_DIR.parent / "cv-service" / "fixtures" / "images"),
+    )
+)

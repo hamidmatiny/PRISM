@@ -16,9 +16,9 @@ PRISM ingests fleet camera + sensor telemetry, runs computer-vision defect/anoma
 | 3 | Computer vision service | Complete — see `PHASE_3_COMPLETION.md` |
 | 4 | Activation gateway | Complete — see `PHASE_4_COMPLETION.md` |
 | 5 | Control plane | Complete — see `PHASE_5_COMPLETION.md` |
-| 6 | AWS platform | Not started |
-| 7 | Azure DR layer | Not started |
-| 8 | Digital twin cockpit | Not started |
+| 6 | AWS platform | Complete — see `PHASE_6_COMPLETION.md` |
+| 7 | Azure DR layer | Complete — see `PHASE_7_COMPLETION.md` |
+| 8 | Digital twin cockpit | Complete — see `PHASE_8_COMPLETION.md` |
 | 9 | AI copilot | Not started |
 | 10 | Observability & security | Not started |
 | 11 | Productionization & demo | Not started |

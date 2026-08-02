@@ -4,6 +4,12 @@ All notable changes to PRISM are documented here.
 
 ## [Unreleased]
 
+### Phase 8 — Digital twin cockpit
+
+- Vue 3 / Vite / Pinia cockpit on `:9101` with dark design system + a11y
+- WebGPU twin (WebGL fallback), TSL health materials, incident scrubber
+- Wired to control-plane + activation-gateway real API shapes
+
 ### Phase 7 — Azure DR layer
 
 - ADLS Gen2 + Azure Databricks warm-standby Terraform (`infra/terraform/azure/`)
