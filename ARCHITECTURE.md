@@ -6,6 +6,8 @@ Local day-to-day path is `docker compose` / `make demo` (zero cloud credentials)
 
 ## System diagram
 
+A trimmed overview also appears at the top of [README.md](README.md). Full graph:
+
 ```mermaid
 flowchart LR
   subgraph Edge["Fleet Edge"]
