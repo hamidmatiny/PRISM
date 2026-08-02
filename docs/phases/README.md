@@ -1,6 +1,6 @@
 # Phase completion records
 
-Zero-padded for sort order. One file per phase (0–11).
+Zero-padded for sort order. One file per phase.
 
 | Phase | Document |
 |------:|----------|
@@ -16,5 +16,7 @@ Zero-padded for sort order. One file per phase (0–11).
 | 9 | [PHASE_09_COMPLETION.md](PHASE_09_COMPLETION.md) |
 | 10 | [PHASE_10_COMPLETION.md](PHASE_10_COMPLETION.md) |
 | 11 | [PHASE_11_COMPLETION.md](PHASE_11_COMPLETION.md) |
+| 12 | [PHASE_12_COMPLETION.md](PHASE_12_COMPLETION.md) |
 
-`v1.0.0` tags the full 0–11 close-out — see [RELEASE_PLAN.md](../RELEASE_PLAN.md).
+- **v1.0.0** — Phases 0–11 close-out  
+- **v1.1.0** — Phases 12–15 (in progress) — see [RELEASE_PLAN.md](../RELEASE_PLAN.md)

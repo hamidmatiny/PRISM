@@ -27,6 +27,8 @@ def start_health_server(pipeline: IngestPipeline, host: str, port: int) -> Threa
                 "status": "ok",
                 "service": "ingestion",
                 "backend": ingest_pipeline.config.backend,
+                "source_mode": ingest_pipeline.config.source_mode,
+                "scenario_url": ingest_pipeline.config.scenario_url,
                 "stats": ingest_pipeline.stats.as_dict(),
             }
             payload = json.dumps(body).encode("utf-8")

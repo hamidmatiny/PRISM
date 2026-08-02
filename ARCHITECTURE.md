@@ -10,11 +10,14 @@ A trimmed overview also appears at the top of [README.md](README.md). Full graph
 
 ```mermaid
 flowchart LR
-  subgraph Edge["Fleet Edge"]
-    Cams["Fleet cameras + sensors (simulated)"]
+  subgraph Sources["Sources"]
+    Cams["live fleet simulator"]
+    Scenario["scenario-engine :9107\nsynthetic_scenario=true"]
   end
   Cams --> Ingest["ingestion :9105"]
+  Scenario -->|"PRISM_SOURCE_MODE=scenario"| Ingest
   Ingest --> Bronze["Bronze zone (.data/bronze)"]
+  Ingest -->|rejected| DLQ["DLQ"]
   Bronze --> CV["cv-service :9102\nOpenCV + ONNX/YOLO CPU"]
   CV --> ReviewQ["cv-review-queue"]
   CV --> Published["cv-findings/published"]
@@ -38,7 +41,8 @@ flowchart LR
 
 | Layer | Technology | Role |
 |---|---|---|
-| Ingestion | Simulator + file/LocalStack Kinesis | Fleet camera frames + sensor pings → bronze |
+| Ingestion | Simulator + optional scenario-engine + file/LocalStack Kinesis | Fleet camera frames + sensor pings → bronze / DLQ |
+| Scenario | Seeded RNG chaos source (`:9107`) | Audited synthetic outcomes ([ADR-005](docs/adr/005-earned-evidence-policy.md)) |
 | Object storage | S3 (AWS) / `.data` (local) | Raw, gold, static assets |
 | Lakehouse | PySpark medallion; Databricks/UC in target arch | Bronze → silver → gold |
 | Modeling | dbt Core | Silver → gold tests (DuckDB in CI) |
@@ -90,6 +94,7 @@ Operator entrypoint: `make demo` then `make e2e`. Talk track: [docs/DEMO_SCRIPT.
 | 9 | Ask PRISM tool-grounded copilot ([ADR-004](docs/adr/004-copilot-non-fabrication.md)) |
 | 10 | OTel through ECS-bound services; CW LES dashboards/alarms; IAM/WAF audits; secrets rotation |
 | 11 | Demo seed, golden-path e2e, screenshots, finalized docs |
+| 12 | Scenario-engine seeded chaos + ADR-005 earned-evidence |
 
 ## Host ports (9100–9199)
 
@@ -102,12 +107,13 @@ Operator entrypoint: `make demo` then `make e2e`. Talk track: [docs/DEMO_SCRIPT.
 | 9104 | ai-copilot |
 | 9105 | ingestion |
 | 9106 | OTel collector (OTLP HTTP) |
+| 9107 | scenario-engine |
 | 9110 / 9111 | mock Redshift / Snowflake |
 | 9199 | foundation stub |
 
 ## ADRs
 
-See [docs/adr/index.md](docs/adr/index.md) — four accepted ADRs covering cost safety, multi-warehouse activation, Azure DR tradeoff, and copilot non-fabrication.
+See [docs/adr/index.md](docs/adr/index.md) — ADRs 001–005 covering cost safety, multi-warehouse activation, Azure DR tradeoff, copilot non-fabrication, and earned-evidence honesty.
 
 ## Cost safety
 

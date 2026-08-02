@@ -1,17 +1,20 @@
 # ingestion
 
 Mock fleet simulator + Kinesis producer (file / LocalStack) + S3-shaped bronze landing.
+Phase 12 adds `PRISM_SOURCE_MODE=live|scenario` — scenario mode pulls from
+[`scenario-engine`](../scenario-engine/) on `:9107` (ingestion stays the contract gate).
 
 | | |
 |---|---|
 | **Port (host)** | `9105` |
-| **Health** | `GET /health` → JSON status + counters |
+| **Health** | `GET /health` → JSON status + counters + `source_mode` |
+| **Source mode** | `PRISM_SOURCE_MODE=live` (default) or `scenario` |
 | **Standalone** | `python -m prism_ingestion` (after installing contracts + this package) |
 
 ## What it does
 
-1. Emits **sensor pings** and **camera frame metadata** at `PRISM_EMIT_RATE` (Hz).
-2. Injects corrupt payloads at `PRISM_FAILURE_RATE` (hydra-style resilience testing).
+1. Emits **sensor pings** and **camera frame metadata** at `PRISM_EMIT_RATE` (Hz) from the live simulator, **or** pulls scenario envelopes when `PRISM_SOURCE_MODE=scenario`.
+2. Injects corrupt payloads at `PRISM_FAILURE_RATE` in live mode (hydra-style resilience testing).
 3. Validates against `contracts/telemetry-schema` — rejects go to bronze `_dlq/`.
 4. Publishes accepted events to a stream backend:
    - `file` (default) — Kinesis-shaped NDJSON under `$PRISM_DATA_ROOT/kinesis/...`

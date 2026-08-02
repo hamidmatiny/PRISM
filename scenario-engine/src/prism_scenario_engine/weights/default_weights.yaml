@@ -1,0 +1,10 @@
+# Weighted outcome distribution for scenario-engine (Phase 12).
+# Same seed + same weights → identical sampled sequence (sentinel-ray discipline).
+outcomes:
+  clean: 0.45
+  sensor_corrupt: 0.10
+  contract_violation: 0.10
+  cv_low_confidence: 0.10
+  cv_high_confidence: 0.10
+  drift_signature: 0.10
+  stalled_source: 0.05

@@ -4,6 +4,13 @@ All notable changes to PRISM are documented here.
 
 ## [Unreleased]
 
+### Phase 12 — Scenario engine (v1.1.0 track)
+
+- `scenario-engine/` on `:9107` — seeded outcomes, append-only audit journal
+- `PRISM_SOURCE_MODE=live|scenario` on ingestion (scenario pulls via HTTP)
+- Telemetry schema: optional `synthetic_scenario` / `scenario_id` / `scenario_outcome`
+- [ADR-005](docs/adr/005-earned-evidence-policy.md) earned-evidence honesty bar
+
 ## [1.0.0] — 2026-08-02 — Full portfolio close-out (Phases 0–11)
 
 First tagged release. **`v1.0.0` covers Phases 0–11** (not the earlier mid-build

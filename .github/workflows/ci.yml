@@ -60,6 +60,7 @@ jobs:
           pip install -e contracts/cv-finding-schema
           pip install -e contracts/activation-contract
           pip install -e ingestion
+          pip install -e scenario-engine
           pip install -e lakehouse
           pip install -e cv-service
           pip install -e activation-gateway
@@ -221,6 +222,7 @@ jobs:
           pip install -e contracts/cv-finding-schema
           pip install -e contracts/activation-contract
           pip install -e ingestion
+          pip install -e scenario-engine
           pip install -e cv-service
           pip install -e activation-gateway
           pip install -e control-plane

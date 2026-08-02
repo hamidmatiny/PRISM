@@ -70,6 +70,22 @@ class SensorPing(BaseModel):
     heading_deg: float = Field(..., ge=HEADING_MIN_DEG, le=HEADING_MAX_DEG)
     odometer_km: float = Field(..., ge=0.0)
     fuel_level_pct: float | None = Field(default=None, ge=0.0, le=100.0)
+    synthetic_scenario: bool = Field(
+        default=False,
+        description="True when emitted by scenario-engine (ADR-005); never live fleet.",
+    )
+    scenario_id: str | None = Field(
+        default=None,
+        min_length=1,
+        max_length=128,
+        description="Stable scenario run id when synthetic_scenario is true.",
+    )
+    scenario_outcome: str | None = Field(
+        default=None,
+        min_length=1,
+        max_length=64,
+        description="Optional scenario outcome tag (e.g. drift_signature).",
+    )
 
     @field_validator("timestamp", mode="before")
     @classmethod
@@ -78,8 +94,18 @@ class SensorPing(BaseModel):
             raise ValueError("timestamp is required")
         return _require_aware_utc(value)
 
+    @model_validator(mode="after")
+    def scenario_fields_consistent(self) -> Self:
+        if self.synthetic_scenario and not self.scenario_id:
+            raise ValueError("scenario_id is required when synthetic_scenario is true")
+        if not self.synthetic_scenario and self.scenario_id is not None:
+            raise ValueError("scenario_id must be omitted when synthetic_scenario is false")
+        if self.scenario_outcome is not None and not self.synthetic_scenario:
+            raise ValueError("scenario_outcome requires synthetic_scenario=true")
+        return self
+
     def to_payload(self) -> dict[str, Any]:
-        return self.model_dump(mode="json")
+        return self.model_dump(mode="json", exclude_none=True)
 
 
 class CameraFrameMetadata(BaseModel):
@@ -106,6 +132,22 @@ class CameraFrameMetadata(BaseModel):
     width_px: int = Field(..., ge=1, le=16384)
     height_px: int = Field(..., ge=1, le=16384)
     capture_exposure_ms: float | None = Field(default=None, gt=0.0, le=60_000.0)
+    synthetic_scenario: bool = Field(
+        default=False,
+        description="True when emitted by scenario-engine (ADR-005); never live fleet.",
+    )
+    scenario_id: str | None = Field(
+        default=None,
+        min_length=1,
+        max_length=128,
+        description="Stable scenario run id when synthetic_scenario is true.",
+    )
+    scenario_outcome: str | None = Field(
+        default=None,
+        min_length=1,
+        max_length=64,
+        description="Optional scenario outcome tag (e.g. cv_low_confidence).",
+    )
 
     @field_validator("timestamp", mode="before")
     @classmethod
@@ -125,7 +167,13 @@ class CameraFrameMetadata(BaseModel):
     def frame_id_shape(self) -> Self:
         if not re.fullmatch(FRAME_ID_PATTERN, self.frame_id):
             raise ValueError(f"frame_id must match {FRAME_ID_PATTERN}")
+        if self.synthetic_scenario and not self.scenario_id:
+            raise ValueError("scenario_id is required when synthetic_scenario is true")
+        if not self.synthetic_scenario and self.scenario_id is not None:
+            raise ValueError("scenario_id must be omitted when synthetic_scenario is false")
+        if self.scenario_outcome is not None and not self.synthetic_scenario:
+            raise ValueError("scenario_outcome requires synthetic_scenario=true")
         return self
 
     def to_payload(self) -> dict[str, Any]:
-        return self.model_dump(mode="json")
+        return self.model_dump(mode="json", exclude_none=True)

@@ -1,0 +1,30 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "prism-scenario-engine"
+version = "0.12.0"
+description = "PRISM seeded, audited chaos scenario source (Phase 12 / ADR-005)"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+  "fastapi>=0.110",
+  "uvicorn>=0.27",
+  "httpx>=0.27",
+  "pydantic>=2.8",
+  "PyYAML>=6.0",
+  "prism-telemetry-schema",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8.0", "ruff>=0.6", "httpx>=0.27"]
+
+[project.scripts]
+prism-scenario-engine = "prism_scenario_engine.__main__:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+prism_scenario_engine = ["py.typed", "weights/*.yaml"]

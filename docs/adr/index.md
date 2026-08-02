@@ -10,5 +10,6 @@ Every `NNN-*.md` ADR in this directory **must** appear in the table below (enfor
 | [002](002-multi-warehouse-activation.md) | Support both Redshift and Snowflake behind one activation contract | Accepted |
 | [003](003-azure-dr-two-cloud-tradeoff.md) | Azure warm-standby DR vs two-cloud operational cost | Accepted (revisit at production scale) |
 | [004](004-copilot-non-fabrication.md) | Ask PRISM tool-grounded non-fabrication (no invented numbers) | Accepted |
+| [005](005-earned-evidence-policy.md) | Earned-evidence policy (no unearned capability / readiness claims) | Accepted |
 
-All four are finalized as of Phase 11. New ADRs should be added here before implementation diverges.
+ADRs 001–004 closed the v1.0.0 portfolio; ADR-005 opens the v1.1 honesty bar for chaos / drift / incidents. New ADRs should be added here before implementation diverges.

@@ -18,6 +18,7 @@ REQUIRED_TOP_LEVEL = [
     "control-plane",
     "ai-copilot",
     "cockpit",
+    "scenario-engine",
     "infra/terraform/aws",
     "infra/terraform/azure",
     "observability",
@@ -44,9 +45,11 @@ REQUIRED_FILES = [
     "docs/phases/PHASE_09_COMPLETION.md",
     "docs/phases/PHASE_10_COMPLETION.md",
     "docs/phases/PHASE_11_COMPLETION.md",
+    "docs/phases/PHASE_12_COMPLETION.md",
     "docs/DEMO_SCRIPT.md",
     "docs/adr/index.md",
     "docs/adr/004-copilot-non-fabrication.md",
+    "docs/adr/005-earned-evidence-policy.md",
     "docs/runbooks/README.md",
     "docs/README.md",
     "examples/demo/run_demo.sh",
@@ -63,6 +66,9 @@ REQUIRED_FILES = [
     "ai-copilot/pyproject.toml",
     "ai-copilot/Dockerfile",
     "ai-copilot/README.md",
+    "scenario-engine/pyproject.toml",
+    "scenario-engine/Dockerfile",
+    "scenario-engine/README.md",
     "docker-compose.yml",
     "cockpit/package.json",
     "cockpit/src/main.ts",
@@ -148,6 +154,7 @@ def test_every_top_level_component_has_readme() -> None:
         "control-plane",
         "ai-copilot",
         "cockpit",
+        "scenario-engine",
         "infra",
         "observability",
         "examples",
@@ -219,6 +226,7 @@ def test_adr_index_lists_every_adr_file() -> None:
         "002-multi-warehouse-activation.md",
         "003-azure-dr-two-cloud-tradeoff.md",
         "004-copilot-non-fabrication.md",
+        "005-earned-evidence-policy.md",
     ], f"Unexpected ADR set: {adr_files}"
     missing = [name for name in adr_files if name not in index]
     assert missing == [], f"docs/adr/index.md missing rows for: {missing}"
@@ -235,9 +243,16 @@ def test_runbooks_index_lists_written_runbooks() -> None:
 
 def test_phase_completion_docs_are_zero_padded_under_docs_phases() -> None:
     phases = ROOT / "docs/phases"
-    expected = [f"PHASE_{n:02d}_COMPLETION.md" for n in range(12)]
+    expected = [f"PHASE_{n:02d}_COMPLETION.md" for n in range(13)]
     present = sorted(p.name for p in phases.glob("PHASE_*_COMPLETION.md"))
     assert present == expected, f"Expected {expected}, got {present}"
     assert not list(ROOT.glob("PHASE_*_COMPLETION.md")), "phase docs must not remain at repo root"
     assert (ROOT / "LICENSE").is_file()
     assert "Apache License" in (ROOT / "LICENSE").read_text(encoding="utf-8")
+
+
+def test_adr005_earned_evidence_policy() -> None:
+    text = (ROOT / "docs/adr/005-earned-evidence-policy.md").read_text(encoding="utf-8")
+    assert "baseline_ready" in text
+    assert "synthetic_scenario" in text
+    assert "unearned" in text.lower() or "earned evidence" in text.lower()

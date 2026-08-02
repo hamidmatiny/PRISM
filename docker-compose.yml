@@ -48,6 +48,36 @@ services:
       - ./observability/collector/otel-collector-config.yaml:/etc/otelcol/config.yaml:ro
       - ./.data/otel:/var/otel
 
+  # Phase 12 — seeded, audited chaos source (ADR-005). Default unused unless
+  # PRISM_SOURCE_MODE=scenario on ingestion.
+  scenario-engine:
+    build:
+      context: .
+      dockerfile: scenario-engine/Dockerfile
+    container_name: prism-scenario-engine
+    ports:
+      - "9107:9107"
+    environment:
+      PRISM_DATA_ROOT: /data
+      PRISM_SCENARIO_PORT: "9107"
+      PRISM_SCENARIO_SEED: ${PRISM_SCENARIO_SEED:-42}
+      PRISM_SCENARIO_ID: ${PRISM_SCENARIO_ID:-scn_42}
+      PRISM_ASSET_IDS: ${PRISM_ASSET_IDS:-PRISM-AST-001,PRISM-AST-002,PRISM-AST-003}
+    volumes:
+      - ./.data:/data
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request; urllib.request.urlopen('http://127.0.0.1:9107/health')",
+        ]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 15s
+
   ingestion:
     build:
       context: .
@@ -57,6 +87,8 @@ services:
       - "9105:9105"
     environment:
       PRISM_INGEST_BACKEND: ${PRISM_INGEST_BACKEND:-file}
+      PRISM_SOURCE_MODE: ${PRISM_SOURCE_MODE:-live}
+      PRISM_SCENARIO_URL: ${PRISM_SCENARIO_URL:-http://scenario-engine:9107}
       PRISM_DATA_ROOT: /data
       PRISM_EMIT_RATE: ${PRISM_EMIT_RATE:-2}
       PRISM_FAILURE_RATE: ${PRISM_FAILURE_RATE:-0.05}
@@ -72,6 +104,8 @@ services:
       OTEL_RESOURCE_ATTRIBUTES: service.namespace=prism,deployment.environment=local
     depends_on:
       otel-collector:
+        condition: service_started
+      scenario-engine:
         condition: service_started
     volumes:
       # Bind mount so host dbt/Spark and containers share one bronze zone.

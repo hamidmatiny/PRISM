@@ -12,6 +12,7 @@ from prism_ingestion.bronze import write_bronze_record, write_dlq_record
 from prism_ingestion.config import IngestConfig
 from prism_ingestion.producer import StreamProducer, build_producer
 from prism_ingestion.simulator import FleetSimulator
+from prism_ingestion.sources import EventSource, LiveEventSource, ScenarioClient
 from prism_ingestion.validate import validate_event
 
 logger = logging.getLogger(__name__)
@@ -22,6 +23,7 @@ class PipelineStats:
     emitted: int = 0
     accepted: int = 0
     rejected: int = 0
+    skipped: int = 0
     sensor_pings: int = 0
     camera_frames: int = 0
     last_error: str | None = None
@@ -32,6 +34,7 @@ class PipelineStats:
             "emitted": self.emitted,
             "accepted": self.accepted,
             "rejected": self.rejected,
+            "skipped": self.skipped,
             "sensor_pings": self.sensor_pings,
             "camera_frames": self.camera_frames,
             "last_error": self.last_error,
@@ -42,10 +45,12 @@ class PipelineStats:
 @dataclass
 class IngestPipeline:
     config: IngestConfig
-    simulator: FleetSimulator
+    source: EventSource
     producer: StreamProducer
     stats: PipelineStats = field(default_factory=PipelineStats)
     _stop: bool = False
+    # Retained for tests that still construct with simulator=
+    simulator: FleetSimulator | None = None
 
     @classmethod
     def from_config(cls, config: IngestConfig) -> IngestPipeline:
@@ -57,18 +62,27 @@ class IngestPipeline:
             aws_region=config.aws_region,
         )
         producer.ensure_stream()
-        simulator = FleetSimulator(
-            asset_ids=config.asset_ids,
-            failure_rate=config.failure_rate,
-            seed=config.seed,
-        )
-        return cls(config=config, simulator=simulator, producer=producer)
+        source: EventSource
+        simulator: FleetSimulator | None = None
+        mode = config.source_mode.strip().lower()
+        if mode == "scenario":
+            source = ScenarioClient(config.scenario_url)
+        elif mode == "live":
+            simulator = FleetSimulator(
+                asset_ids=config.asset_ids,
+                failure_rate=config.failure_rate,
+                seed=config.seed,
+            )
+            source = LiveEventSource(simulator)
+        else:
+            raise ValueError(f"unsupported PRISM_SOURCE_MODE={config.source_mode!r}")
+        return cls(config=config, source=source, producer=producer, simulator=simulator)
 
     def stop(self) -> None:
         self._stop = True
 
     def process_one(self) -> bool:
-        """Process a single simulated event. Returns True if accepted to bronze."""
+        """Process a single event. Returns True if accepted to bronze."""
         try:
             from prism_otel import get_tracer
 
@@ -82,7 +96,14 @@ class IngestPipeline:
             else nullcontext()
         )
         with span_cm as span:
-            kind, payload = self.simulator.generate_event()
+            generated = self.source.generate_event()
+            if generated is None:
+                self.stats.skipped += 1
+                if span is not None:
+                    span.set_attribute("prism.skipped", True)
+                return False
+
+            kind, payload = generated
             self.stats.emitted += 1
             if kind == "sensor_ping":
                 self.stats.sensor_pings += 1
@@ -92,6 +113,7 @@ class IngestPipeline:
                 dataset = "camera_frames"
             if span is not None:
                 span.set_attribute("prism.event_kind", kind)
+                span.set_attribute("prism.source_mode", self.config.source_mode)
 
             ok, cleaned, error = validate_event(kind, payload)
             if not ok:
@@ -133,10 +155,10 @@ class IngestPipeline:
 
         self.stats.running = True
         logger.info(
-            "Ingestion pipeline starting backend=%s rate=%.2fHz failure_rate=%.2f",
+            "Ingestion pipeline starting backend=%s source_mode=%s rate=%.2fHz",
             self.config.backend,
+            self.config.source_mode,
             self.config.emit_rate_hz,
-            self.config.failure_rate,
         )
         try:
             while not self._stop:

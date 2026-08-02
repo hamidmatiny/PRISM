@@ -57,6 +57,36 @@
       "title": "Odometer Km",
       "type": "number"
     },
+    "scenario_id": {
+      "anyOf": [
+        {
+          "maxLength": 128,
+          "minLength": 1,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Stable scenario run id when synthetic_scenario is true.",
+      "title": "Scenario Id"
+    },
+    "scenario_outcome": {
+      "anyOf": [
+        {
+          "maxLength": 64,
+          "minLength": 1,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Optional scenario outcome tag (e.g. drift_signature).",
+      "title": "Scenario Outcome"
+    },
     "schema_version": {
       "default": "1.0.0",
       "pattern": "^\\d+\\.\\d+\\.\\d+$",
@@ -69,6 +99,12 @@
       "minimum": 0.0,
       "title": "Speed Mph",
       "type": "number"
+    },
+    "synthetic_scenario": {
+      "default": false,
+      "description": "True when emitted by scenario-engine (ADR-005); never live fleet.",
+      "title": "Synthetic Scenario",
+      "type": "boolean"
     },
     "timestamp": {
       "description": "UTC observation time (timezone-aware).",

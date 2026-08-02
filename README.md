@@ -4,10 +4,12 @@
 
 ```mermaid
 flowchart LR
-  subgraph Edge["Fleet Edge"]
-    Cams["Fleet cameras + sensors"]
+  subgraph Sources["Sources"]
+    Cams["live fleet simulator"]
+    Scenario["scenario-engine :9107"]
   end
   Cams --> Ingest["ingestion :9105"]
+  Scenario --> Ingest
   Ingest --> Bronze["Bronze"]
   Bronze --> CV["cv-service :9102"]
   Bronze --> Lakehouse["lakehouse → gold"]
@@ -74,6 +76,7 @@ PRISM ingests fleet camera + sensor telemetry, runs computer-vision defect/anoma
 | 9 | AI copilot | Complete — see [`docs/phases/PHASE_09_COMPLETION.md`](docs/phases/PHASE_09_COMPLETION.md) |
 | 10 | Observability & security | Complete — see [`docs/phases/PHASE_10_COMPLETION.md`](docs/phases/PHASE_10_COMPLETION.md) |
 | 11 | Productionization & demo | Complete — see [`docs/phases/PHASE_11_COMPLETION.md`](docs/phases/PHASE_11_COMPLETION.md) |
+| 12 | Scenario engine (chaos) | Complete — see [`docs/phases/PHASE_12_COMPLETION.md`](docs/phases/PHASE_12_COMPLETION.md) |
 
 ## Monorepo layout
 
@@ -90,6 +93,7 @@ prism/
 ├── control-plane/              # Django + Ninja review / RBAC / audit
 ├── ai-copilot/                 # Ask PRISM (tool-grounded)
 ├── cockpit/                    # Digital-twin UI
+├── scenario-engine/            # Phase 12 seeded chaos source
 ├── infra/terraform/aws         # AWS platform modules (validate/plan only)
 ├── infra/terraform/azure       # Azure DR warm standby (validate only)
 ├── observability/              # OTel + load tests
@@ -115,12 +119,13 @@ PRISM owns **9100–9199** (avoids Argus / Vulcan on shared laptops).
 | 9104 | ai-copilot |
 | 9105 | ingestion |
 | 9106 | OpenTelemetry collector (OTLP HTTP) |
+| 9107 | scenario-engine |
 | 9199 | Phase 0 foundation stub |
 
 ## Engineering bar
 
 1. **Contract-first** — schemas live in `contracts/`; services import, never duplicate.
-2. **ADRs** for real decisions — [ADR-001 cost safety](docs/adr/001-cost-safety-policy.md), [ADR-002 multi-warehouse](docs/adr/002-multi-warehouse-activation.md), [ADR-003 Azure DR tradeoff](docs/adr/003-azure-dr-two-cloud-tradeoff.md), [ADR-004 copilot non-fabrication](docs/adr/004-copilot-non-fabrication.md) ([index](docs/adr/index.md)).
+2. **ADRs** for real decisions — [ADR-001](docs/adr/001-cost-safety-policy.md)–[ADR-005](docs/adr/005-earned-evidence-policy.md) ([index](docs/adr/index.md)).
 3. **Cost safety** — CI never applies Terraform, never calls paid APIs, never runs GPU inference. Emulators only (DuckDB, LocalStack, moto).
 4. **Phase discipline** — one phase at a time; each ends with `docs/phases/PHASE_NN_COMPLETION.md`.
 5. **Local-first** — `docker compose up` / `make demo` works without cloud credentials.
@@ -128,9 +133,9 @@ PRISM owns **9100–9199** (avoids Argus / Vulcan on shared laptops).
 ## Docs
 
 - [ARCHITECTURE.md](ARCHITECTURE.md) — full system diagram, layers, golden path
-- [ADRs](docs/adr/index.md) (001–004)
+- [ADRs](docs/adr/index.md) (001–005)
 - [Demo script](docs/DEMO_SCRIPT.md) (Phase 11)
 - [Runbooks](docs/runbooks/README.md) · [Security reviews](docs/security/iam-least-privilege-audit.md)
-- [Phase completions](docs/phases/README.md) (00–11)
+- [Phase completions](docs/phases/README.md) (00–12)
 - [Release plan](docs/RELEASE_PLAN.md) · [Packaging plan](docs/PACKAGING_PLAN.md) · [Changelog](CHANGELOG.md)
 - [LICENSE](LICENSE) (Apache-2.0)
