@@ -1,3 +1,7 @@
 # dbt docs
 
-`dbt-cloud-path.md` lands in Phase 2. This folder exists so the monorepo layout matches the build brief from Phase 0.
+| File | Purpose |
+|------|---------|
+| `dbt-cloud-path.md` | How this Core project would run as scheduled dbt Cloud jobs (not provisioned here) |
+
+Generated site artifacts live in `dbt/target/` after `dbt docs generate` (gitignored).

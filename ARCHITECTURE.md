@@ -63,6 +63,12 @@ Cross-service schemas live under `contracts/` and are imported, never copied:
 
 Mock fleet simulator → contract gate → stream producer (`file` default or LocalStack Kinesis) → Hive-partitioned bronze zone under `.data/bronze/{sensor_pings|camera_frames}/dt=…/device=…/`. Rejected events land in `.data/bronze/_dlq/`.
 
+## Lakehouse path (Phase 2)
+
+Bronze JSON → PySpark silver (typed, expectation-filtered, deduped) → gold aggregates, written as parquet under `.data/lakehouse/{silver,gold}/`.  
+Data-quality expectations live in `lakehouse/quality/expectations.yaml` and are applied as Unity Catalog table properties (`quality.expectation.*`) via `unity_catalog/bootstrap.sql` (manual workspace apply). Lakeflow Declarative Pipelines reference those property keys.  
+dbt Core models silver→gold for analytics tests (DuckDB in CI; Databricks SQL warehouse profile documented for real runs).
+
 ## Cost safety
 
 See [ADR-001](docs/adr/001-cost-safety-policy.md). Local path uses Docker Compose + emulators (DuckDB, LocalStack, moto). CI validates Terraform; humans apply.

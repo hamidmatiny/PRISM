@@ -1,0 +1,10 @@
+# Local CI / laptop profile (DuckDB). No cloud credentials (ADR-001).
+# Databricks SQL warehouse profile: see profiles.databricks.yml.example
+prism:
+  target: duckdb
+  outputs:
+    duckdb:
+      type: duckdb
+      path: "../.data/prism_dbt.duckdb"
+      schema: main
+      threads: 4

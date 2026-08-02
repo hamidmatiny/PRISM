@@ -1,0 +1,114 @@
+version: 2
+
+models:
+  - name: stg_sensor_pings
+    description: Silver sensor pings (contract-aligned) exposed to dbt.
+    columns:
+      - name: asset_id
+        tests:
+          - not_null
+      - name: device_id
+        tests:
+          - not_null
+      - name: event_ts
+        tests:
+          - not_null
+      - name: speed_mph
+        tests:
+          - not_null
+          - accepted_range:
+              arguments:
+                min_value: 0
+                max_value: 120
+      - name: latitude
+        tests:
+          - accepted_range:
+              arguments:
+                min_value: -90
+                max_value: 90
+      - name: longitude
+        tests:
+          - accepted_range:
+              arguments:
+                min_value: -180
+                max_value: 180
+
+  - name: stg_camera_frames
+    description: Silver camera-frame metadata exposed to dbt.
+    columns:
+      - name: asset_id
+        tests:
+          - not_null
+      - name: frame_id
+        tests:
+          - not_null
+          - unique
+      - name: event_ts
+        tests:
+          - not_null
+      - name: width_px
+        tests:
+          - accepted_range:
+              arguments:
+                min_value: 1
+                max_value: 16384
+      - name: height_px
+        tests:
+          - accepted_range:
+              arguments:
+                min_value: 1
+                max_value: 16384
+
+  - name: fct_asset_daily_metrics
+    description: Gold per-asset daily sensor aggregates (dbt-modeled).
+    columns:
+      - name: asset_id
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_assets')
+                field: asset_id
+      - name: metric_date
+        tests:
+          - not_null
+      - name: ping_count
+        tests:
+          - not_null
+          - accepted_range:
+              arguments:
+                min_value: 0
+      - name: avg_speed_mph
+        tests:
+          - accepted_range:
+              arguments:
+                min_value: 0
+                max_value: 120
+
+  - name: fct_fleet_frame_summary
+    description: Gold per-asset daily camera-frame counts.
+    columns:
+      - name: asset_id
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_assets')
+                field: asset_id
+      - name: metric_date
+        tests:
+          - not_null
+      - name: frame_count
+        tests:
+          - not_null
+          - accepted_range:
+              arguments:
+                min_value: 0
+
+  - name: dim_assets
+    description: Asset dimension derived from silver telemetry + frames.
+    columns:
+      - name: asset_id
+        tests:
+          - not_null
+          - unique

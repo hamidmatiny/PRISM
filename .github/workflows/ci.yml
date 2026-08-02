@@ -41,6 +41,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
       - uses: actions/setup-python@v5
         with:
           python-version: ${{ env.PYTHON_VERSION }}
@@ -48,13 +53,29 @@ jobs:
       - name: Install packages + test deps
         run: |
           pip install --upgrade pip
-          pip install pytest ruff pydantic
+          pip install pytest ruff pydantic pyyaml "pyspark>=3.5" "dbt-core>=1.8" "dbt-duckdb>=1.8"
           pip install -e contracts/telemetry-schema
           pip install -e contracts/cv-finding-schema
           pip install -e ingestion
+          pip install -e lakehouse
+
+      - name: Unity Catalog bootstrap structural validation
+        run: |
+          python lakehouse/unity_catalog/render_bootstrap.py --check
+          python lakehouse/unity_catalog/validate_bootstrap.py
 
       - name: Run unit tests
         run: pytest -q tests/unit
+
+      - name: Spark medallion + dbt build (DuckDB)
+        run: |
+          python -m prism_lakehouse \
+            --bronze-root lakehouse/fixtures/bronze \
+            --warehouse-root .data/lakehouse
+          cd dbt
+          export DBT_PROFILES_DIR="$PWD"
+          dbt build --target duckdb
+          dbt docs generate --target duckdb
 
   terraform:
     name: Terraform validate / tflint / checkov

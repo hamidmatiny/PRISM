@@ -1,0 +1,14 @@
+version: 2
+
+sources:
+  - name: lakehouse_silver
+    description: Silver parquet datasets written by prism_lakehouse (Spark local or Databricks).
+    tables:
+      - name: sensor_pings
+        description: Typed sensor pings.
+        meta:
+          external_location: "{{ var('lakehouse_root') }}/silver/sensor_pings"
+      - name: camera_frames
+        description: Typed camera-frame metadata.
+        meta:
+          external_location: "{{ var('lakehouse_root') }}/silver/camera_frames"

@@ -1,0 +1,28 @@
+name: prism
+version: 1.0.0
+config-version: 2
+profile: prism
+require-dbt-version: [">=1.8.0", "<2.0.0"]
+
+model-paths: ["models"]
+macro-paths: ["macros"]
+seed-paths: ["seeds"]
+test-paths: ["tests"]
+analysis-paths: ["analyses"]
+docs-paths: ["docs"]
+target-path: target
+clean-targets: ["target", "dbt_packages"]
+
+models:
+  prism:
+    +materialized: view
+    silver:
+      +schema: silver
+      +materialized: view
+    gold:
+      +schema: gold
+      +materialized: table
+
+vars:
+  # Absolute or repo-relative path to Spark-written parquet warehouse.
+  lakehouse_root: "{{ env_var('PRISM_LAKEHOUSE_ROOT', '../.data/lakehouse') }}"

@@ -1,0 +1,13 @@
+{
+  "schema_version": "1.0.0",
+  "event_type": "camera_frame",
+  "asset_id": "PRISM-AST-002",
+  "device_id": "PRISM-DEV-102",
+  "frame_id": "frm_ddddffffeeee",
+  "timestamp": "2026-08-01T12:03:00Z",
+  "storage_uri": "s3://prism-raw/frames/frm_ddddffffeeee.jpg",
+  "content_type": "image/jpeg",
+  "width_px": 1280,
+  "height_px": 720,
+  "capture_exposure_ms": 5.5
+}

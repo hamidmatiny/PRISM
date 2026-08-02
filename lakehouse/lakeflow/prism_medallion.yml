@@ -1,0 +1,72 @@
+# Lakeflow Declarative Pipeline (Databricks) — PRISM medallion.
+# Expectations are NOT inlined as the only source of truth. They are stored as
+# Unity Catalog table properties (see quality/expectations.yaml + bootstrap.sql)
+# and referenced here by property key for auditability.
+#
+# Structural artifact for CI. Deploy/start against a real workspace is manual
+# (ADR-001).
+
+name: prism_medallion
+catalog: prism
+channel: CURRENT
+continuous: false
+edition: ADVANCED
+photon: true
+
+libraries:
+  - notebook:
+      path: /Repos/prism/lakeflow/medallion_notebook
+
+clusters:
+  - label: default
+    autoscale:
+      min_workers: 1
+      max_workers: 3
+    node_type_id: i3.xlarge
+
+# Pipeline datasets map to UC tables; expectations attached via table properties.
+tables:
+  - name: silver.sensor_pings
+    expectations_source: unity_catalog_table_properties
+    expectation_property_prefix: quality.expectation.
+    # Property keys must match lakehouse/quality/expectations.yaml names:
+    expectation_keys:
+      - asset_id_not_null
+      - device_id_not_null
+      - timestamp_not_null
+      - speed_range
+      - latitude_range
+      - longitude_range
+      - asset_id_pattern
+
+  - name: silver.camera_frames
+    expectations_source: unity_catalog_table_properties
+    expectation_property_prefix: quality.expectation.
+    expectation_keys:
+      - asset_id_not_null
+      - frame_id_not_null
+      - timestamp_not_null
+      - width_positive
+      - height_positive
+      - storage_uri_scheme
+
+  - name: gold.asset_daily_metrics
+    expectations_source: unity_catalog_table_properties
+    expectation_property_prefix: quality.expectation.
+    expectation_keys:
+      - asset_id_not_null
+      - metric_date_not_null
+      - ping_count_positive
+      - avg_speed_range
+
+  - name: gold.fleet_frame_summary
+    expectations_source: unity_catalog_table_properties
+    expectation_property_prefix: quality.expectation.
+    expectation_keys:
+      - asset_id_not_null
+      - metric_date_not_null
+      - frame_count_nonneg
+
+configuration:
+  pipelines.tableManagedByPipeline: "true"
+  prism.expectations_manifest: "lakehouse/quality/expectations.yaml"

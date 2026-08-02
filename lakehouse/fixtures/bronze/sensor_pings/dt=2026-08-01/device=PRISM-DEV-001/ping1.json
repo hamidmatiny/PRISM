@@ -1,0 +1,13 @@
+{
+  "schema_version": "1.0.0",
+  "event_type": "sensor_ping",
+  "asset_id": "PRISM-AST-001",
+  "device_id": "PRISM-DEV-001",
+  "timestamp": "2026-08-01T12:00:00Z",
+  "speed_mph": 28.5,
+  "latitude": 37.7749,
+  "longitude": -122.4194,
+  "heading_deg": 90.0,
+  "odometer_km": 12010.2,
+  "fuel_level_pct": 66.0
+}

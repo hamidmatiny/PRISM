@@ -32,6 +32,7 @@ REQUIRED_FILES = [
     "ARCHITECTURE.md",
     "PHASE_0_COMPLETION.md",
     "PHASE_1_COMPLETION.md",
+    "PHASE_2_COMPLETION.md",
     "docker-compose.yml",
     "Makefile",
     ".env.example",
@@ -46,6 +47,11 @@ REQUIRED_FILES = [
     "contracts/cv-finding-schema/schemas/cv_finding.schema.json",
     "contracts/activation-contract/openapi.yaml",
     "ingestion/Dockerfile",
+    "lakehouse/Dockerfile",
+    "lakehouse/quality/expectations.yaml",
+    "lakehouse/unity_catalog/bootstrap.sql",
+    "dbt/dbt_project.yml",
+    "dbt/docs/dbt-cloud-path.md",
 ]
 
 

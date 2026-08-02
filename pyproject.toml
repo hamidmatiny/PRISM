@@ -25,6 +25,7 @@ pythonpath = [
   "contracts/telemetry-schema/src",
   "contracts/cv-finding-schema/src",
   "ingestion/src",
+  "lakehouse/src",
 ]
 
 [tool.ruff]
@@ -35,6 +36,7 @@ extend-exclude = [
   "node_modules",
   "dbt/target",
   "dbt/dbt_packages",
+  "lakehouse/lakeflow/medallion_notebook.py",
 ]
 
 [tool.ruff.lint]
@@ -45,4 +47,5 @@ known-first-party = [
   "prism_telemetry_schema",
   "prism_cv_finding_schema",
   "prism_ingestion",
+  "prism_lakehouse",
 ]

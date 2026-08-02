@@ -1,0 +1,29 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "prism-lakehouse"
+version = "0.1.0"
+description = "PRISM medallion transforms (bronze → silver → gold) for local Spark and Databricks"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+  "pyspark>=3.5",
+  "PyYAML>=6.0",
+]
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=8.0",
+  "ruff>=0.6",
+]
+
+[project.scripts]
+prism-lakehouse = "prism_lakehouse.__main__:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+prism_lakehouse = ["data/*", "py.typed"]

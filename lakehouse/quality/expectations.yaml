@@ -1,0 +1,91 @@
+# Canonical data-quality expectations for PRISM medallion tables.
+# Source of truth for Unity Catalog table properties AND Lakeflow Declarative
+# Pipelines. Do not hardcode expectation SQL only inside transform code —
+# auditability lives on the tables (ADR-001 / Databricks UC practice).
+#
+# Applied by: lakehouse/unity_catalog/bootstrap.sql (manual against a workspace)
+# Referenced by: lakehouse/lakeflow/prism_medallion.yml
+# Validated by: lakehouse/unity_catalog/validate_bootstrap.py (CI)
+
+catalog: prism
+schemas:
+  - bronze
+  - silver
+  - gold
+
+tables:
+  silver.sensor_pings:
+    comment: Typed, deduplicated sensor pings from bronze JSON.
+    expectations:
+      - name: asset_id_not_null
+        constraint: "asset_id IS NOT NULL"
+        action: fail
+      - name: device_id_not_null
+        constraint: "device_id IS NOT NULL"
+        action: fail
+      - name: timestamp_not_null
+        constraint: "event_ts IS NOT NULL"
+        action: fail
+      - name: speed_range
+        constraint: "speed_mph BETWEEN 0 AND 120"
+        action: drop
+      - name: latitude_range
+        constraint: "latitude BETWEEN -90 AND 90"
+        action: drop
+      - name: longitude_range
+        constraint: "longitude BETWEEN -180 AND 180"
+        action: drop
+      - name: asset_id_pattern
+        constraint: "asset_id RLIKE '^PRISM-AST-[0-9]{3}$'"
+        action: drop
+
+  silver.camera_frames:
+    comment: Typed camera-frame metadata from bronze JSON.
+    expectations:
+      - name: asset_id_not_null
+        constraint: "asset_id IS NOT NULL"
+        action: fail
+      - name: frame_id_not_null
+        constraint: "frame_id IS NOT NULL"
+        action: fail
+      - name: timestamp_not_null
+        constraint: "event_ts IS NOT NULL"
+        action: fail
+      - name: width_positive
+        constraint: "width_px >= 1"
+        action: drop
+      - name: height_positive
+        constraint: "height_px >= 1"
+        action: drop
+      - name: storage_uri_scheme
+        constraint: "storage_uri RLIKE '^(s3|file)://'"
+        action: drop
+
+  gold.asset_daily_metrics:
+    comment: Per-asset daily aggregates over silver sensor pings.
+    expectations:
+      - name: asset_id_not_null
+        constraint: "asset_id IS NOT NULL"
+        action: fail
+      - name: metric_date_not_null
+        constraint: "metric_date IS NOT NULL"
+        action: fail
+      - name: ping_count_positive
+        constraint: "ping_count >= 0"
+        action: fail
+      - name: avg_speed_range
+        constraint: "avg_speed_mph IS NULL OR (avg_speed_mph BETWEEN 0 AND 120)"
+        action: drop
+
+  gold.fleet_frame_summary:
+    comment: Per-asset daily camera-frame counts.
+    expectations:
+      - name: asset_id_not_null
+        constraint: "asset_id IS NOT NULL"
+        action: fail
+      - name: metric_date_not_null
+        constraint: "metric_date IS NOT NULL"
+        action: fail
+      - name: frame_count_nonneg
+        constraint: "frame_count >= 0"
+        action: fail

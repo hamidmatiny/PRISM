@@ -1,11 +1,13 @@
 # PRISM local development stack
-# Phase 1: foundation stub + ingestion (file-backed Kinesis fallback).
+# Phase 2: foundation stub + ingestion + optional lakehouse medallion job.
 # ADR-001: zero cloud credentials required for `docker compose up`.
 #
 # Host port range: 9100–9199 (see .cursor/rules/monorepo.mdc)
 #
 # Optional LocalStack Kinesis:
 #   PRISM_INGEST_BACKEND=localstack docker compose --profile localstack up
+# One-shot lakehouse transform (Spark local in container):
+#   docker compose --profile lakehouse run --rm lakehouse
 
 name: prism
 
@@ -24,10 +26,6 @@ services:
       retries: 3
       start_period: 5s
 
-  # -------------------------------------------------------------------------
-  # Phase 1 — mock fleet simulator → stream producer → Hive bronze zone
-  # Default backend=file (no AWS / LocalStack required).
-  # -------------------------------------------------------------------------
   ingestion:
     build:
       context: .
@@ -61,6 +59,43 @@ services:
       timeout: 3s
       retries: 5
       start_period: 15s
+
+  # Phase 2 — Spark local medallion over bronze in the shared volume.
+  lakehouse:
+    profiles: ["lakehouse"]
+    build:
+      context: .
+      dockerfile: lakehouse/Dockerfile
+    container_name: prism-lakehouse
+    depends_on:
+      ingestion:
+        condition: service_healthy
+    volumes:
+      - prism-data:/data
+    environment:
+      PRISM_BRONZE_ROOT: /data/bronze
+      PRISM_WAREHOUSE_ROOT: /data/lakehouse
+
+  # Fixture-based medallion (no dependency on live ingestion data).
+  lakehouse-fixtures:
+    profiles: ["lakehouse"]
+    build:
+      context: .
+      dockerfile: lakehouse/Dockerfile
+    container_name: prism-lakehouse-fixtures
+    volumes:
+      - ./lakehouse/fixtures/bronze:/data/bronze:ro
+      - ./.data/lakehouse:/data/lakehouse
+    command:
+      [
+        "python",
+        "-m",
+        "prism_lakehouse",
+        "--bronze-root",
+        "/data/bronze",
+        "--warehouse-root",
+        "/data/lakehouse",
+      ]
 
   localstack:
     profiles: ["localstack"]

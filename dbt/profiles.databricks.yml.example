@@ -1,0 +1,25 @@
+# Copy entries into profiles.yml (or DBT_PROFILES_DIR overlay) for real runs.
+# Requires: pip install dbt-databricks
+# Never used in CI (ADR-001).
+#
+#   export DATABRICKS_HOST=adb-xxxx.azuredatabricks.net
+#   export DATABRICKS_HTTP_PATH=/sql/1.0/warehouses/abcdef
+#   export DATABRICKS_TOKEN=dapi...
+#   dbt build --target databricks
+
+prism:
+  target: databricks
+  outputs:
+    duckdb:
+      type: duckdb
+      path: "../.data/prism_dbt.duckdb"
+      schema: main
+      threads: 4
+    databricks:
+      type: databricks
+      catalog: prism
+      schema: dbt
+      host: "{{ env_var('DATABRICKS_HOST') }}"
+      http_path: "{{ env_var('DATABRICKS_HTTP_PATH') }}"
+      token: "{{ env_var('DATABRICKS_TOKEN') }}"
+      threads: 4
