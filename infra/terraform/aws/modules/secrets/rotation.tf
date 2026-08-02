@@ -128,24 +128,4 @@ resource "aws_lambda_permission" "allow_secretsmanager_app" {
   source_arn    = aws_secretsmanager_secret.app.arn
 }
 
-resource "aws_secretsmanager_secret_rotation" "rds" {
-  secret_id           = aws_secretsmanager_secret.rds.id
-  rotation_lambda_arn = aws_lambda_function.rotation.arn
-
-  rotation_rules {
-    automatically_after_days = 30
-  }
-
-  depends_on = [aws_lambda_permission.allow_secretsmanager_rds]
-}
-
-resource "aws_secretsmanager_secret_rotation" "app" {
-  secret_id           = aws_secretsmanager_secret.app.id
-  rotation_lambda_arn = aws_lambda_function.rotation.arn
-
-  rotation_rules {
-    automatically_after_days = 30
-  }
-
-  depends_on = [aws_lambda_permission.allow_secretsmanager_app]
-}
+# aws_secretsmanager_secret_rotation.{rds,app} live in main.tf next to the secrets.

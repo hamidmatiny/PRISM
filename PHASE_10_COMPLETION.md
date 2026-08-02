@@ -58,6 +58,15 @@ rg CKV2_AWS_57 infra/terraform/aws/.checkov.yml  # expect no match
 rg aws_secretsmanager_secret_rotation infra/terraform/aws/modules/secrets/rotation.tf
 ```
 
+## Correction (post-ship review)
+
+Initial Phase 10 summary pointed at Secrets Manager rotation without saying the
+`aws_secretsmanager_secret_rotation` resources lived in
+`modules/secrets/rotation.tf`, not `main.tf`. Terraform loads both, so checkov
+already passed — but reading only `main.tf` correctly looked like a missing
+wire-up. Rotation attachments are now co-located in `main.tf` next to each
+secret; Lambda/IAM remain in `rotation.tf`.
+
 ## Explicit non-claims
 
 - No `terraform apply`; CloudWatch / Secrets Manager rotation are plan-validated.

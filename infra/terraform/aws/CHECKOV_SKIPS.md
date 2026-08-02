@@ -28,12 +28,11 @@ Pinned version: **checkov 3.3.8** (Makefile + CI).
 | `CKV_AWS_115` | rotation Lambda | suppress | Reserved concurrency unnecessary for infrequent rotation invocations. |
 | `CKV_AWS_272` | rotation Lambda | suppress | Code signing deferred; zip is built from this module’s `lambda/rotate.py`. |
 
-## Closed in Phase 10 (no longer skipped)
-
-| Check ID | Resolution |
-|----------|------------|
-| `CKV2_AWS_57` | `aws_secretsmanager_secret_rotation` + rotation Lambda wired for RDS + app secrets (30-day). See `docs/runbooks/secrets-rotation.md`. |
-| `CKV_AWS_149` | Secrets use customer-managed KMS (`kms_key_id`); legacy global skip removed. |
+**Resolved (not skipped):** `CKV2_AWS_57` and `CKV_AWS_149` are **absent** from
+`.checkov.yml` `skip-check` and from the table above. Rotation attachments are on
+`aws_secretsmanager_secret.{rds,app}` via `aws_secretsmanager_secret_rotation` in
+`modules/secrets/main.tf` (Lambda in `rotation.tf`). See
+`docs/runbooks/secrets-rotation.md`.
 
 ## Local ↔ CI parity
 

@@ -37,6 +37,19 @@ resource "aws_secretsmanager_secret" "rds" {
   tags                    = merge(var.tags, { Name = "${var.name_prefix}-rds-secret" })
 }
 
+# Automatic rotation (CKV2_AWS_57) — Lambda + IAM live in rotation.tf; attachment here
+# so the secret and its rotation schedule are visible in the same file.
+resource "aws_secretsmanager_secret_rotation" "rds" {
+  secret_id           = aws_secretsmanager_secret.rds.id
+  rotation_lambda_arn = aws_lambda_function.rotation.arn
+
+  rotation_rules {
+    automatically_after_days = 30
+  }
+
+  depends_on = [aws_lambda_permission.allow_secretsmanager_rds]
+}
+
 resource "aws_secretsmanager_secret_version" "rds" {
   secret_id = aws_secretsmanager_secret.rds.id
   secret_string = jsonencode({
@@ -53,6 +66,17 @@ resource "aws_secretsmanager_secret" "app" {
   recovery_window_in_days = 7
   kms_key_id              = var.kms_key_arn
   tags                    = merge(var.tags, { Name = "${var.name_prefix}-app-secret" })
+}
+
+resource "aws_secretsmanager_secret_rotation" "app" {
+  secret_id           = aws_secretsmanager_secret.app.id
+  rotation_lambda_arn = aws_lambda_function.rotation.arn
+
+  rotation_rules {
+    automatically_after_days = 30
+  }
+
+  depends_on = [aws_lambda_permission.allow_secretsmanager_app]
 }
 
 resource "random_password" "django" {
