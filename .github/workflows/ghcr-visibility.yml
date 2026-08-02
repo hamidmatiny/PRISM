@@ -1,0 +1,44 @@
+# Make GHCR packages public (inherit from public repo linkage).
+name: GHCR visibility
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Release tag (informational)"
+        required: false
+        default: "v1.0.0"
+        type: string
+
+permissions:
+  packages: write
+  contents: read
+
+jobs:
+  public:
+    name: Set prism/* packages public
+    runs-on: ubuntu-latest
+    steps:
+      - name: Set container packages public
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          OWNER="${{ github.repository_owner }}"
+          for svc in ingestion cv-service activation-gateway control-plane lakehouse ai-copilot cockpit; do
+            name="prism/${svc}"
+            enc=$(python3 -c "import urllib.parse,sys; print(urllib.parse.quote(sys.argv[1], safe=''))" "$name")
+            echo "Setting ${name} public…"
+            # User-namespace package (hamidmatiny/prism/…)
+            if gh api --method PUT "/user/packages/container/${enc}/visibility" -f visibility=public; then
+              echo "  ok via /user/packages"
+              continue
+            fi
+            # Fallback: users/{owner}/packages
+            if gh api --method PUT "/users/${OWNER}/packages/container/${enc}/visibility" -f visibility=public; then
+              echo "  ok via /users/${OWNER}/packages"
+              continue
+            fi
+            echo "  FAILED for ${name}" >&2
+            exit 1
+          done
