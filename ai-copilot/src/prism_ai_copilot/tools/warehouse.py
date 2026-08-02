@@ -10,9 +10,7 @@ from prism_ai_copilot.non_fabrication import EvidenceItem, add_id, add_number
 
 TOOL_NAME = "query_warehouse"
 DEFAULT_TABLE = "asset_daily_metrics"
-DEFAULT_SQL = (
-    "SELECT asset_id, ping_count FROM asset_daily_metrics ORDER BY asset_id"
-)
+DEFAULT_SQL = "SELECT asset_id, ping_count FROM asset_daily_metrics ORDER BY asset_id"
 
 
 def ensure_activated(client: httpx.Client, base_url: str, table: str = DEFAULT_TABLE) -> None:

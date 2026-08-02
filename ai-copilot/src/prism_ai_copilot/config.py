@@ -38,9 +38,9 @@ class CopilotConfig:
         )
         return cls(
             port=int(os.environ.get("PRISM_AI_COPILOT_PORT", "9104")),
-            activation_url=os.environ.get(
-                "PRISM_ACTIVATION_URL", "http://127.0.0.1:9103"
-            ).rstrip("/"),
+            activation_url=os.environ.get("PRISM_ACTIVATION_URL", "http://127.0.0.1:9103").rstrip(
+                "/"
+            ),
             control_plane_url=os.environ.get(
                 "PRISM_CONTROL_PLANE_URL", "http://127.0.0.1:9100"
             ).rstrip("/"),
