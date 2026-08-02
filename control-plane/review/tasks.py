@@ -15,10 +15,10 @@ logger = logging.getLogger(__name__)
 
 def write_reviewed_finding_to_gold(finding_id: str) -> str:
     """
-    Persist schema-valid CvFinding with reviewed=true into the gold findings zone.
+    Persist schema-valid CvFinding with reviewed=true into the lakehouse gold zone.
 
     Path: ``$PRISM_CV_FINDINGS_GOLD_DIR/<finding_id>.json``
-    (default ``.data/cv-findings/gold/``).
+    (default ``.data/lakehouse/gold/cv_findings/`` — same gold root as Phase 2).
     """
     from review.models import InspectionFinding
     from review.queue import gold_dir

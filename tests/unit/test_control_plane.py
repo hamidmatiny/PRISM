@@ -180,6 +180,16 @@ def test_relabel_updates_defect_class(queue_dirs, roles, client):
     assert gold_payload["reviewed"] is True
 
 
+def test_default_gold_dir_is_under_lakehouse_gold():
+    """Production default writeback path is lakehouse/gold/cv_findings (Phase-2 gold root)."""
+    from pathlib import Path
+
+    from django.conf import settings as dj_settings
+
+    default = Path(dj_settings.REPO_DATA_ROOT) / "lakehouse" / "gold" / "cv_findings"
+    assert default.parts[-3:] == ("lakehouse", "gold", "cv_findings")
+
+
 def test_fleet_admin_creates_asset_viewer_cannot(roles, client):
     _viewer, viewer_token = _make_user("v3", "viewer")
     denied = client.post(

@@ -10,7 +10,7 @@ Django 5.x + Django Ninja control plane: assets, work orders, CV human-review, R
 | **API** | `http://localhost:9100/api/v1/…` (Bearer token) |
 | **DB** | `DATABASE_URL` (Postgres); SQLite fallback under `.data/control-plane/` |
 | **Queue input** | `.data/cv-review-queue/pending/` (written by `cv-service`) |
-| **Gold writeback** | `.data/cv-findings/gold/<finding_id>.json` (`reviewed=true`) |
+| **Gold writeback** | `.data/lakehouse/gold/cv_findings/<finding_id>.json` (`reviewed=true`) |
 
 ## Roles
 

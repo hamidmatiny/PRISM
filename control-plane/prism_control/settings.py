@@ -98,11 +98,12 @@ CV_REVIEW_DECIDED_DIR = Path(
         str(REPO_DATA_ROOT / "cv-review-queue" / "decided"),
     )
 )
-# Gold-layer writeback for reviewed findings (schema-valid CvFinding, reviewed=true).
+# Gold-layer writeback — same lakehouse gold zone as Phase 2 Spark/dbt output.
+# Default: <data>/lakehouse/gold/cv_findings/<finding_id>.json (reviewed=true).
 CV_FINDINGS_GOLD_DIR = Path(
     os.environ.get(
         "PRISM_CV_FINDINGS_GOLD_DIR",
-        str(REPO_DATA_ROOT / "cv-findings" / "gold"),
+        str(REPO_DATA_ROOT / "lakehouse" / "gold" / "cv_findings"),
     )
 )
 

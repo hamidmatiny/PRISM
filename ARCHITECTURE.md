@@ -92,7 +92,7 @@ Why both warehouses: [ADR-002](docs/adr/002-multi-warehouse-activation.md).
 - Sync/list reads the **same pending JSON files** cv-service writes
 - `viewer` / `inspector` / `fleet-admin` RBAC on the Ninja API
 - Approve / reject / relabel → `ReviewDecision` + `AuditLogEntry`; pending file → `decided/`
-- Approved/relabeled → gold findings zone (`.data/cv-findings/gold/`, `reviewed=true`) via Django-Q2 (inline on SQLite)
+- Approved/relabeled → lakehouse gold (`.data/lakehouse/gold/cv_findings/`, `reviewed=true`) via Django-Q2 (inline on SQLite)
 
 ## Cost safety
 

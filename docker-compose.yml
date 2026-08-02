@@ -152,11 +152,12 @@ services:
       PRISM_DATA_ROOT: /data
       PRISM_CV_REVIEW_PENDING_DIR: /data/cv-review-queue/pending
       PRISM_CV_REVIEW_DECIDED_DIR: /data/cv-review-queue/decided
-      PRISM_CV_FINDINGS_GOLD_DIR: /data/cv-findings/gold
+      PRISM_CV_FINDINGS_GOLD_DIR: /data/lakehouse/gold/cv_findings
       PRISM_BOOTSTRAP_PASSWORD: ${PRISM_BOOTSTRAP_PASSWORD:-prism-local-dev}
       DJANGO_DEBUG: "0"
       DJANGO_ALLOWED_HOSTS: localhost,127.0.0.1,0.0.0.0
       # Prefer PRISM_DATABASE_URL so a host DATABASE_URL (pytest) cannot leak a bad path.
+      # Local default: SQLite under the bind-mounted .data volume (Postgres via PRISM_DATABASE_URL).
       DATABASE_URL: ${PRISM_DATABASE_URL:-sqlite:////data/control-plane/db.sqlite3}
       PRISM_Q_SYNC: "0"
     volumes:
@@ -184,7 +185,7 @@ services:
       PRISM_DATA_ROOT: /data
       PRISM_CV_REVIEW_PENDING_DIR: /data/cv-review-queue/pending
       PRISM_CV_REVIEW_DECIDED_DIR: /data/cv-review-queue/decided
-      PRISM_CV_FINDINGS_GOLD_DIR: /data/cv-findings/gold
+      PRISM_CV_FINDINGS_GOLD_DIR: /data/lakehouse/gold/cv_findings
       DATABASE_URL: ${PRISM_DATABASE_URL:-sqlite:////data/control-plane/db.sqlite3}
       DJANGO_ALLOWED_HOSTS: localhost,127.0.0.1,0.0.0.0
       PRISM_Q_SYNC: "0"
@@ -193,6 +194,9 @@ services:
     depends_on:
       control-plane:
         condition: service_healthy
+    # qcluster does not serve HTTP — do not inherit the API healthcheck.
+    healthcheck:
+      disable: true
 
   # Phase 2 — Spark local medallion over ingestion-written bronze at /data/bronze.
   lakehouse:

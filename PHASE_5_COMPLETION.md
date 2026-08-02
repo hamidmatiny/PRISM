@@ -9,26 +9,26 @@
 - Models: `Asset`, `WorkOrder`, `InspectionFinding`, `ReviewDecision`, `AuditLogEntry` (+ `UserProfile` for API tokens).
 - Human-review workflow reads **actual** `cv-review-queue/pending/*.json` files written by `cv-service` (same envelope shape / `ReviewQueue` writer — not a hand-rolled fixture of the queue).
 - Inspector/fleet-admin approve / reject / relabel via Ninja API and Django admin actions.
-- Approved/relabeled findings → gold findings zone (`.data/cv-findings/gold/`) with `reviewed=true`, schema-validated via `cv-finding-schema`.
+- Approved/relabeled findings → **lakehouse gold** (`.data/lakehouse/gold/cv_findings/<id>.json`) with `reviewed=true`, schema-validated via `cv-finding-schema`.
 - Async path: **Django-Q2** ORM broker (see `control-plane/docs/ASYNC_TASKS.md`); SQLite local writeback is inline.
 - RBAC: `viewer`, `inspector`, `fleet-admin` enforced at the API layer.
-- `DATABASE_URL` Postgres; SQLite fallback under `.data/control-plane/`.
+- Postgres via `PRISM_DATABASE_URL`; SQLite fallback under `.data/control-plane/`.
 - Full audit trail on sync, decisions, asset/work-order creates.
 
 ## Verified
 
 | Check | Result |
 |-------|--------|
-| Unit tests (`test_control_plane.py`) | Green — includes live pending-dir read when `.data/cv-review-queue/pending/` is populated |
-| `docker compose up -d --build control-plane control-plane-worker` | Healthy on `:9100` |
-| `GET /health` | `status=ok` |
-| `GET /api/v1/review-queue` with inspector token | Listed **20** real pending `fnd_*` envelopes from bind-mounted `.data` (e.g. `fnd_151e555be235`) |
-| Approve live `fnd_151e555be235` | → `decided/` + `.data/cv-findings/gold/…` with `reviewed=true` + audit `review_decision.approve` |
+| `make phase5-check` | **60 passed** |
+| `docker compose up -d --build control-plane control-plane-worker` | `control-plane` **Up (healthy)** on `:9100`; SQLite at `/data/control-plane/db.sqlite3` |
+| `GET /health` | `{"status": "ok", "service": "control-plane"}` |
+| `GET /api/v1/review-queue` | Listed real pending `fnd_*` from bind-mounted `.data/cv-review-queue/pending/` |
+| Approve `fnd_151e555be235` gold writeback | File at `.data/lakehouse/gold/cv_findings/fnd_151e555be235.json` with `"reviewed": true` |
 
 ## Explicit non-claims
 
 - SQLite local is a **dev fallback**, not the production RDS shape.
-- Gold writeback for CV findings is the `cv-findings/gold` zone (schema-valid `CvFinding`); lakehouse Spark gold tables for findings remain a later wiring step.
+- Gold writeback is schema-valid `CvFinding` JSON under the lakehouse gold root (`lakehouse/gold/cv_findings/`), alongside Spark parquet gold tables — not a rewrite of `asset_daily_metrics` parquet.
 
 ## Deferred
 
