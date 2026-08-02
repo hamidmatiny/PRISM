@@ -1,9 +1,9 @@
 # PRISM — local developer entrypoints
 # ADR-001: no cloud apply targets here.
 
-.PHONY: help up down logs test lint fmt terraform-validate export-schemas \
-	lakehouse-run lakehouse-run-live dbt-build uc-validate \
-	phase1-check phase2-check phase3-check phase4-check phase5-check
+.PHONY: help up down logs test lint fmt terraform-validate terraform-aws-plan \
+	export-schemas lakehouse-run lakehouse-run-live dbt-build uc-validate \
+	phase1-check phase2-check phase3-check phase4-check phase5-check phase6-check
 
 help:
 	@echo "PRISM targets:"
@@ -18,10 +18,12 @@ help:
 	@echo "  make dbt-build          - dbt build + docs generate (DuckDB)"
 	@echo "  make uc-validate        - structural UC bootstrap / Lakeflow checks"
 	@echo "  make terraform-validate - validate aws + azure stacks (no apply)"
+	@echo "  make terraform-aws-plan - mock-credential plan → tfplan.txt (no apply)"
 	@echo "  make phase2-check       - lint + test + uc-validate + terraform-validate"
 	@echo "  make phase3-check       - lint + test + uc-validate + terraform-validate"
 	@echo "  make phase4-check       - lint + test + uc-validate + terraform-validate"
 	@echo "  make phase5-check       - lint + test + uc-validate + terraform-validate"
+	@echo "  make phase6-check       - lint + test + terraform-validate (+ local plan optional)"
 
 up:
 	docker compose up -d --build
@@ -67,6 +69,17 @@ terraform-validate:
 	cd infra/terraform/aws && terraform init -backend=false -input=false && terraform validate
 	cd infra/terraform/azure && terraform init -backend=false -input=false && terraform validate
 
+# ADR-001: mock credentials only. Never export real AWS keys into this target.
+terraform-aws-plan:
+	cd infra/terraform/aws && terraform init -input=false -reconfigure
+	cd infra/terraform/aws && \
+		AWS_ACCESS_KEY_ID=AKIAIOSFODNN7EXAMPLE \
+		AWS_SECRET_ACCESS_KEY=wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY \
+		AWS_EC2_METADATA_DISABLED=true \
+		AWS_REGION=us-east-1 \
+		terraform plan -input=false -lock=false -no-color -out=tfplan.binary | tee tfplan.txt
+	cd infra/terraform/aws && terraform show -no-color tfplan.binary >> tfplan.txt
+
 phase0-check: lint test terraform-validate
 
 phase1-check: lint test terraform-validate
@@ -78,3 +91,5 @@ phase3-check: lint test uc-validate terraform-validate
 phase4-check: lint test uc-validate terraform-validate
 
 phase5-check: lint test uc-validate terraform-validate
+
+phase6-check: lint test terraform-validate

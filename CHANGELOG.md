@@ -4,6 +4,12 @@ All notable changes to PRISM are documented here.
 
 ## [Unreleased]
 
+### Phase 6 — AWS platform (Terraform)
+
+- Modules under `infra/terraform/aws/`: VPC, ALB+WAF, ECS Fargate + Service Connect, RDS, S3, KMS, Secrets, IAM, observability
+- CI: `terraform validate` + tflint + checkov; AWS `terraform plan` uploaded as artifact (mock credentials; never apply)
+- Local `docker compose` path unchanged (additive IaC only)
+
 ### Housekeeping
 
 - Release plan (`docs/RELEASE_PLAN.md`), packaging plan (`docs/PACKAGING_PLAN.md`)

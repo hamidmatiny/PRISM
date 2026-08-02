@@ -49,7 +49,7 @@ flowchart LR
 | Copilot | Tool-grounded NL service | Ask PRISM — no fabrication |
 | Compute | ECS Fargate + Service Connect | Stateless services |
 | OLTP | RDS PostgreSQL Multi-AZ | Control-plane store |
-| IaC | Terraform | AWS + Azure; plan/validate in CI only |
+| IaC | Terraform | AWS platform modules (Phase 6); Azure DR Phase 7; plan/validate/checkov in CI only |
 
 ## Contracts
 
@@ -94,9 +94,22 @@ Why both warehouses: [ADR-002](docs/adr/002-multi-warehouse-activation.md).
 - Approve / reject / relabel → `ReviewDecision` + `AuditLogEntry`; pending file → `decided/`
 - Approved/relabeled → lakehouse gold (`.data/lakehouse/gold/cv_findings/`, `reviewed=true`) via Django-Q2 (inline on SQLite)
 
+## AWS platform path (Phase 6)
+
+Terraform under `infra/terraform/aws/` (validate / tflint / checkov / plan only — never apply in CI or by agents):
+
+- Multi-AZ VPC (public / private / isolated), NAT, flow logs, S3 + CloudWatch VPC endpoints
+- ALB + WAFv2 with path-based routing to Fargate services; Service Connect for east-west calls
+- RDS PostgreSQL Multi-AZ (encrypted, isolated subnets, IAM DB auth)
+- S3 raw/gold (CMK) with raw `bronze/` → Glacier lifecycle; dedicated SSE-S3 access-logs bucket for ALB
+- Secrets Manager + least-privilege per-task IAM (explicit SIDs / ARNs)
+- CloudWatch Container Insights, ops dashboard, alarms (5xx / latency / queue depth)
+
+Local `docker compose` remains the day-to-day path; Terraform does not replace it.
+
 ## Cost safety
 
-See [ADR-001](docs/adr/001-cost-safety-policy.md). Local path uses Docker Compose + emulators (DuckDB, LocalStack, moto, mock warehouses, SQLite). CI validates Terraform; humans apply.
+See [ADR-001](docs/adr/001-cost-safety-policy.md). Local path uses Docker Compose + emulators (DuckDB, LocalStack, moto, mock warehouses, SQLite). CI validates Terraform and uploads a reviewable AWS plan artifact; humans apply.
 
 ## Build order
 

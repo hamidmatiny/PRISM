@@ -1,0 +1,8 @@
+# Azure stack remains a Phase-0 null scaffold until Phase 7.
+compact: true
+framework:
+  - terraform
+quiet: true
+
+skip-check:
+  - CKV_TF_1

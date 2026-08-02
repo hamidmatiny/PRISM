@@ -1,4 +1,4 @@
-# PRISM CI — lint, unit tests, terraform validate / tflint / checkov.
+# PRISM CI — lint, unit tests, terraform validate / tflint / checkov / plan.
 # ADR-001: never terraform apply, never call real cloud / paid APIs / GPU.
 name: CI
 
@@ -125,5 +125,43 @@ jobs:
           directory: infra/terraform/${{ matrix.stack }}
           framework: terraform
           soft_fail: false
-          # Phase 0 scaffold is null_resource only; real CIS checks land with Phase 6/7 modules.
+          config_file: infra/terraform/${{ matrix.stack }}/.checkov.yml
           skip_check: CKV_TF_1
+
+  terraform-aws-plan:
+    name: AWS terraform plan (artifact)
+    runs-on: ubuntu-latest
+    needs: [terraform]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.9.8"
+          terraform_wrapper: false
+
+      - name: Terraform init (local backend only)
+        working-directory: infra/terraform/aws
+        # Local backend for plan artifact. Never a remote/S3 backend in CI (ADR-001).
+        run: terraform init -input=false -reconfigure
+
+      - name: Terraform plan (mock credentials only)
+        working-directory: infra/terraform/aws
+        env:
+          # Documented AWS example keys — never real credentials (ADR-001).
+          AWS_ACCESS_KEY_ID: AKIAIOSFODNN7EXAMPLE
+          AWS_SECRET_ACCESS_KEY: wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY
+          AWS_EC2_METADATA_DISABLED: "true"
+          AWS_REGION: us-east-1
+        run: |
+          set -euo pipefail
+          terraform plan -input=false -lock=false -no-color -out=tfplan.binary | tee tfplan.txt
+          terraform show -no-color tfplan.binary >> tfplan.txt
+
+      - name: Upload plan artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: aws-terraform-plan
+          path: infra/terraform/aws/tfplan.txt
+          if-no-files-found: error
+          retention-days: 14

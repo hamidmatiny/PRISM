@@ -31,6 +31,8 @@ credentials.json
 *.tfstate
 *.tfstate.*
 *.tfplan
+tfplan.binary
+tfplan.txt
 crash.log
 override.tf
 *_override.tf

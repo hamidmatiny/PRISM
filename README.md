@@ -44,7 +44,7 @@ No cloud credentials required ([ADR-001](docs/adr/001-cost-safety-policy.md)). R
 ```
 prism/
 ├── .cursor/rules/              # Contract-first + cost-safety rules
-├── .github/workflows/          # CI: lint, test, terraform validate/tflint/checkov
+├── .github/workflows/          # CI: lint, test, terraform validate/tflint/checkov/plan artifact
 ├── contracts/                  # Shared schemas (telemetry, CV, activation)
 ├── ingestion/                  # Simulator + producer + bronze landing
 ├── cv-service/                 # OpenCV + ONNX YOLO defects (CPU)
@@ -54,7 +54,8 @@ prism/
 ├── control-plane/              # Django + Ninja review / RBAC / audit
 ├── ai-copilot/                 # Phase 9
 ├── cockpit/                    # Phase 8
-├── infra/terraform/{aws,azure} # Phases 6 / 7 (scaffold validates now)
+├── infra/terraform/aws         # Phase 6 platform modules (validate/plan only)
+├── infra/terraform/azure       # Phase 7 (null scaffold until then)
 ├── observability/              # Phase 10
 ├── docs/adr/                   # ADRs
 ├── docker-compose.yml
