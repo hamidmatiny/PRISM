@@ -21,6 +21,7 @@ class CvConfig:
     input_size: tuple[int, int] = (320, 320)
     model_id: str = "yolo-fleet-defects-tiny"
     max_detections: int = 20
+    incident_engine_url: str = "http://127.0.0.1:9108"
 
     @property
     def review_queue_dir(self) -> Path:
@@ -48,4 +49,5 @@ class CvConfig:
             input_size=(size, size),
             model_id=os.getenv("PRISM_CV_MODEL_ID", "yolo-fleet-defects-tiny"),
             max_detections=int(os.getenv("PRISM_CV_MAX_DETECTIONS", "20")),
+            incident_engine_url=os.getenv("PRISM_INCIDENT_ENGINE_URL", "http://127.0.0.1:9108"),
         )

@@ -10,6 +10,7 @@ from typing import Any
 
 from prism_ingestion.bronze import write_bronze_record, write_dlq_record
 from prism_ingestion.config import IngestConfig
+from prism_ingestion.incident_client import report_observation
 from prism_ingestion.producer import StreamProducer, build_producer
 from prism_ingestion.simulator import FleetSimulator
 from prism_ingestion.sources import EventSource, LiveEventSource, ScenarioClient
@@ -133,6 +134,13 @@ class IngestPipeline:
                     corruption_type=result.corruption_type,
                     gate=result.gate,
                 )
+                report_observation(
+                    self.config.incident_engine_url,
+                    asset_id=result.cleaned.get("asset_id")
+                    if isinstance(result.cleaned, dict)
+                    else None,
+                    kind="ingestion_quarantined",
+                )
                 if span is not None:
                     span.set_attribute("prism.accepted", False)
                     span.set_attribute("prism.corruption_type", corruption_type)
@@ -151,6 +159,11 @@ class IngestPipeline:
                 event_timestamp=str(cleaned.get("timestamp")),
             )
             self.stats.accepted += 1
+            report_observation(
+                self.config.incident_engine_url,
+                asset_id=partition_key if partition_key != "unknown" else None,
+                kind="ingestion_accepted",
+            )
             if span is not None:
                 span.set_attribute("prism.accepted", True)
                 span.set_attribute("prism.asset_id", partition_key)

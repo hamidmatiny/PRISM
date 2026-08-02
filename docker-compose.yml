@@ -78,6 +78,39 @@ services:
       retries: 5
       start_period: 15s
 
+  # Phase 14 — per-source circuit breaker + incident journal (ADR-005: pause the
+  # source, not the whole pipeline).
+  incident-engine:
+    build:
+      context: .
+      dockerfile: incident-engine/Dockerfile
+    container_name: prism-incident-engine
+    ports:
+      - "9108:9108"
+    environment:
+      PRISM_INCIDENT_ENGINE_PORT: "9108"
+      PRISM_DATA_ROOT: /data
+      OTEL_SERVICE_NAME: incident-engine
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4318
+      OTEL_RESOURCE_ATTRIBUTES: service.namespace=prism,deployment.environment=local
+    depends_on:
+      otel-collector:
+        condition: service_started
+    volumes:
+      - ./.data:/data
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request; urllib.request.urlopen('http://127.0.0.1:9108/health')",
+        ]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 15s
+
   ingestion:
     build:
       context: .
@@ -95,6 +128,7 @@ services:
       PRISM_DURATION_SECONDS: ${PRISM_DURATION_SECONDS:-0}
       PRISM_INGESTION_PORT: "9105"
       PRISM_SIM_SEED: ${PRISM_SIM_SEED:-42}
+      PRISM_INCIDENT_ENGINE_URL: http://incident-engine:9108
       LOCALSTACK_ENDPOINT: ${LOCALSTACK_ENDPOINT:-http://localstack:4566}
       AWS_DEFAULT_REGION: us-east-1
       AWS_ACCESS_KEY_ID: test
@@ -106,6 +140,8 @@ services:
       otel-collector:
         condition: service_started
       scenario-engine:
+        condition: service_started
+      incident-engine:
         condition: service_started
     volumes:
       # Bind mount so host dbt/Spark and containers share one bronze zone.
@@ -137,11 +173,14 @@ services:
       PRISM_CV_CONFIDENCE_THRESHOLD: ${PRISM_CV_CONFIDENCE_THRESHOLD:-0.55}
       PRISM_CV_MODEL_PATH: /app/cv-service/models/yolo_fleet_defects_tiny.onnx
       PRISM_CV_LABELS_PATH: /app/cv-service/models/labels.json
+      PRISM_INCIDENT_ENGINE_URL: http://incident-engine:9108
       OTEL_SERVICE_NAME: cv-service
       OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4318
       OTEL_RESOURCE_ATTRIBUTES: service.namespace=prism,deployment.environment=local
     depends_on:
       otel-collector:
+        condition: service_started
+      incident-engine:
         condition: service_started
     volumes:
       - ./.data:/data

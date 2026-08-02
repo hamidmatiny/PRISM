@@ -28,6 +28,7 @@ class IngestConfig:
     backend: str = "file"  # file | localstack
     source_mode: str = "live"  # live | scenario
     scenario_url: str = "http://127.0.0.1:9107"
+    incident_engine_url: str = "http://127.0.0.1:9108"
     data_root: Path = Path(".data")
     stream_name: str = "prism-fleet-events"
     emit_rate_hz: float = 2.0
@@ -63,6 +64,9 @@ class IngestConfig:
             backend=os.getenv("PRISM_INGEST_BACKEND", "file").strip().lower(),
             source_mode=os.getenv("PRISM_SOURCE_MODE", "live").strip().lower(),
             scenario_url=os.getenv("PRISM_SCENARIO_URL", "http://127.0.0.1:9107").strip(),
+            incident_engine_url=os.getenv(
+                "PRISM_INCIDENT_ENGINE_URL", "http://127.0.0.1:9108"
+            ).strip(),
             data_root=Path(os.getenv("PRISM_DATA_ROOT", ".data")),
             stream_name=os.getenv("PRISM_KINESIS_STREAM", "prism-fleet-events"),
             emit_rate_hz=_float_env("PRISM_EMIT_RATE", 2.0),

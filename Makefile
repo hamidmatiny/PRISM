@@ -6,7 +6,7 @@
 	lakehouse-run lakehouse-run-live dbt-build uc-validate \
 	phase1-check phase2-check phase3-check phase4-check phase5-check \
 	phase6-check phase7-check phase8-check phase9-check phase10-check \
-	phase11-check phase12-check phase13-check cockpit-build demo e2e
+	phase11-check phase12-check phase13-check phase14-check cockpit-build demo e2e
 
 CHECKOV_VERSION := $(shell tr -d '[:space:]' < infra/terraform/CHECKOV_VERSION)
 
@@ -40,6 +40,7 @@ help:
 	@echo "  make phase11-check      - lint + unit tests + cockpit + terraform gates"
 	@echo "  make phase12-check      - lint + unit tests (scenario-engine + ADR-005)"
 	@echo "  make phase13-check      - lint + unit tests (two-layer validation hardening)"
+	@echo "  make phase14-check      - lint + unit tests (per-source circuit breaker)"
 
 setup:
 	@echo "Installing dev/test deps (mirrors CI's test job exactly — see requirements-dev.txt)"
@@ -50,6 +51,7 @@ setup:
 	python -m pip install -e contracts/activation-contract
 	python -m pip install -e ingestion
 	python -m pip install -e scenario-engine
+	python -m pip install -e incident-engine
 	python -m pip install -e lakehouse
 	python -m pip install -e cv-service
 	python -m pip install -e activation-gateway
@@ -176,3 +178,5 @@ phase11-check: lint test cockpit-build terraform-validate tflint-aws tflint-azur
 phase12-check: lint test
 
 phase13-check: lint test
+
+phase14-check: lint test

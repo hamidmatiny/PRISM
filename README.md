@@ -12,6 +12,9 @@ flowchart LR
   Scenario --> Ingest
   Ingest --> Bronze["Bronze"]
   Bronze --> CV["cv-service :9102"]
+  Ingest -. observations .-> Incident["incident-engine :9108"]
+  CV -. observations .-> Incident
+  Incident -. breaker check .-> CV
   Bronze --> Lakehouse["lakehouse → gold"]
   CV --> ReviewQ["review queue"]
   ReviewQ --> CP["control-plane :9100"]
@@ -100,6 +103,7 @@ PRISM ingests fleet camera + sensor telemetry, runs computer-vision defect/anoma
 | 11 | Productionization & demo | Complete — see [`docs/phases/PHASE_11_COMPLETION.md`](docs/phases/PHASE_11_COMPLETION.md) |
 | 12 | Scenario engine (chaos) | Complete — see [`docs/phases/PHASE_12_COMPLETION.md`](docs/phases/PHASE_12_COMPLETION.md) |
 | 13 | Two-layer validation hardening | Complete — see [`docs/phases/PHASE_13_COMPLETION.md`](docs/phases/PHASE_13_COMPLETION.md) |
+| 14 | Per-source circuit breaker + incident-engine | Complete — see [`docs/phases/PHASE_14_COMPLETION.md`](docs/phases/PHASE_14_COMPLETION.md) |
 
 ## Monorepo layout
 
@@ -117,11 +121,12 @@ prism/
 ├── ai-copilot/                 # Ask PRISM (tool-grounded)
 ├── cockpit/                    # Digital-twin UI
 ├── scenario-engine/            # Phase 12 seeded chaos source
+├── incident-engine/            # Phase 14 per-source circuit breaker + incidents
 ├── infra/terraform/aws         # AWS platform modules (validate/plan only)
 ├── infra/terraform/azure       # Azure DR warm standby (validate only)
 ├── observability/              # OTel + load tests
 ├── docs/adr/                   # ADRs
-├── docs/phases/                # PHASE_00…11_COMPLETION.md
+├── docs/phases/                # PHASE_00…14_COMPLETION.md
 ├── docker-compose.yml
 ├── Makefile
 ├── LICENSE                     # Apache-2.0
@@ -143,6 +148,7 @@ PRISM owns **9100–9199** (avoids Argus / Vulcan on shared laptops).
 | 9105 | ingestion |
 | 9106 | OpenTelemetry collector (OTLP HTTP) |
 | 9107 | scenario-engine |
+| 9108 | incident-engine |
 | 9199 | Phase 0 foundation stub |
 
 ## Engineering bar
