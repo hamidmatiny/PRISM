@@ -1,6 +1,8 @@
 # PRISM architecture
 
-PRISM is a visual fleet-intelligence platform: edge telemetry and imagery flow into a Databricks lakehouse, CV findings enrich the silver/gold layers, and a single activation contract fans gold data into Redshift and Snowflake. A Django control plane and Vue 3 + Three.js cockpit sit on top; an AI copilot answers only from tool calls.
+PRISM is a visual fleet-intelligence platform: edge telemetry and imagery flow into a lakehouse, CV findings enrich silver/gold, and a single activation contract fans gold data into Redshift and Snowflake. A Django control plane and Vue 3 + Three.js cockpit sit on top; an AI copilot answers only from tool calls.
+
+Local day-to-day path is `docker compose` / `make demo` (zero cloud credentials). AWS and Azure Terraform are validate/plan/checkov only in CI ([ADR-001](docs/adr/001-cost-safety-policy.md)).
 
 ## System diagram
 
@@ -9,133 +11,102 @@ flowchart LR
   subgraph Edge["Fleet Edge"]
     Cams["Fleet cameras + sensors (simulated)"]
   end
-  Cams --> Kinesis["Kinesis Data Streams"]
-  Kinesis --> S3Raw["S3 raw zone (bronze)"]
-  S3Raw --> CV["cv-service\n(OpenCV + ONNX/YOLO)"]
-  CV --> S3Raw
-  S3Raw --> DBX["Databricks + PySpark\n(Lakeflow Declarative Pipelines)"]
-  DBX --> Silver["Silver (Delta/Iceberg, Unity Catalog)"]
-  Silver --> DBT["dbt Core models"]
-  DBT --> Gold["Gold (Delta/Iceberg, Unity Catalog)"]
-  Gold --> Activation["activation-gateway\n(unified warehouse contract)"]
-  Activation --> Redshift["Redshift Serverless"]
-  Activation --> Snowflake["Snowflake\n(Horizon Catalog, zero-copy)"]
-  Gold -.->|"DR mirror"| Azure["Azure Databricks + ADLS Gen2"]
-  Redshift --> API["control-plane\n(Django + Django Ninja)"]
-  Snowflake --> API
-  API --> RDS["RDS Postgres (Multi-AZ)"]
-  API --> Cockpit["cockpit\nVue 3 + Three.js digital twin"]
-  Activation --> Copilot["ai-copilot\n(tool-grounded, non-fabricating)"]
+  Cams --> Ingest["ingestion :9105"]
+  Ingest --> Bronze["Bronze zone (.data/bronze)"]
+  Bronze --> CV["cv-service :9102\nOpenCV + ONNX/YOLO CPU"]
+  CV --> ReviewQ["cv-review-queue"]
+  CV --> Published["cv-findings/published"]
+  Bronze --> Lakehouse["lakehouse PySpark\nmedallion"]
+  Lakehouse --> Gold["Gold parquet\n.data/lakehouse/gold"]
+  ReviewQ --> CP["control-plane :9100\nDjango + Ninja RBAC"]
+  CP --> GoldFindings["gold/cv_findings\nreviewed=true"]
+  Gold --> Activation["activation-gateway :9103"]
+  Activation --> Redshift["Redshift adapter\n(:9110 mock local)"]
+  Activation --> Snowflake["Snowflake adapter\n(:9111 mock local)"]
+  Gold -.->|"DR mirror"| Azure["Azure Databricks + ADLS\n(Terraform warm standby)"]
+  CP --> Cockpit["cockpit :9101\nVue 3 + Three.js twin"]
+  Activation --> Cockpit
+  Activation --> Copilot["ai-copilot :9104"]
+  CP --> Copilot
   Copilot --> Cockpit
-  ALB["ALB + WAF"] --> API
-  ALB --> Cockpit
-  ALB --> CV
+  Services["ECS-bound services"] --> OTel["OTel collector :9106"]
 ```
 
 ## Layers
 
 | Layer | Technology | Role |
 |---|---|---|
-| Ingestion | Kinesis (+ local shim) | Fleet camera frames + sensor pings |
-| Object storage | S3 | Raw zone, table storage, static assets |
-| Lakehouse | Databricks (PySpark, Unity Catalog, Lakeflow Declarative Pipelines) | Bronze → silver → gold |
-| Modeling | dbt Core | Silver → gold tests, docs, lineage |
-| Serving WH #1 | Redshift Serverless | Gold activation (zero-ETL / auto-copy) |
-| Serving WH #2 | Snowflake Horizon Catalog | Iceberg zero-copy read |
-| DR | Azure Databricks + ADLS Gen2 | Warm-standby mirror |
-| CV | OpenCV + ONNX Runtime (YOLO-family) | Defect / anomaly detection |
-| Control plane | Django 5.x + Django Ninja | Assets, work orders, review, RBAC |
+| Ingestion | Simulator + file/LocalStack Kinesis | Fleet camera frames + sensor pings → bronze |
+| Object storage | S3 (AWS) / `.data` (local) | Raw, gold, static assets |
+| Lakehouse | PySpark medallion; Databricks/UC in target arch | Bronze → silver → gold |
+| Modeling | dbt Core | Silver → gold tests (DuckDB in CI) |
+| Serving WH #1 | Redshift Serverless (mock `:9110` local) | Gold activation |
+| Serving WH #2 | Snowflake Horizon (mock `:9111` local) | Same gold, zero-copy mode |
+| DR | Azure Databricks + ADLS Gen2 | Warm-standby mirror ([ADR-003](docs/adr/003-azure-dr-two-cloud-tradeoff.md)) |
+| CV | OpenCV + ONNX Runtime YOLO-family (CPU) | Defect / anomaly detection |
+| Control plane | Django 5 + Ninja + Django-Q2 | Assets, WOs, review, RBAC, audit |
 | Frontend | Vue 3 + Three.js WebGPURenderer | Digital-twin cockpit |
-| Copilot | Tool-grounded NL service | Ask PRISM — no fabrication |
-| Compute | ECS Fargate + Service Connect | Stateless services |
-| OLTP | RDS PostgreSQL Multi-AZ | Control-plane store |
-| IaC | Terraform | AWS platform modules (Phase 6); Azure DR Phase 7; plan/validate/checkov in CI only |
+| Copilot | Tool-grounded FastAPI | Ask PRISM — no fabrication ([ADR-004](docs/adr/004-copilot-non-fabrication.md)) |
+| Compute | ECS Fargate + Service Connect | Stateless services (Terraform) |
+| OLTP | RDS PostgreSQL Multi-AZ (SQLite local) | Control-plane store |
+| Observability | OpenTelemetry + CloudWatch LES | Fleet traces + per-service dashboards/alarms |
+| IaC | Terraform AWS + Azure | Plan/validate/checkov in CI; human apply |
 
 ## Contracts
 
 Cross-service schemas live under `contracts/` and are imported, never copied:
 
-- `telemetry-schema` — `SensorPing` + `CameraFrameMetadata` (Pydantic + JSON Schema)
-- `cv-finding-schema` — `CvFinding` defect/anomaly findings (Pydantic + JSON Schema; emitter in Phase 3)
-- `activation-contract` — warehouse-agnostic activate/query OpenAPI (`POST /v1/activate`, `POST /v1/query`)
+- `telemetry-schema` — `SensorPing` + `CameraFrameMetadata`
+- `cv-finding-schema` — `CvFinding` (`PRISM-AST-###`, `frm_*`, `fnd_*`)
+- `activation-contract` — `POST /v1/activate`, `POST /v1/query` OpenAPI
 
-## Ingestion path (Phase 1)
+## Golden path (Phase 11)
 
-Mock fleet simulator → contract gate → stream producer (`file` default or LocalStack Kinesis) → Hive-partitioned bronze zone under `.data/bronze/{sensor_pings|camera_frames}/dt=…/device=…/`. Rejected events land in `.data/bronze/_dlq/`.
+One automated chain in `tests/e2e/test_golden_path.py` (live compose, `PRISM_E2E=1`):
 
-## Lakehouse path (Phase 2)
+1. Simulated fleet event accepted by **ingestion** into bronze  
+2. **cv-service** emits a schema-valid finding into the **review queue** (demo threshold 0.99)  
+3. **control-plane** inspector approves → `lakehouse/gold/cv_findings/<id>.json` with `reviewed=true`  
+4. Gold metrics parquet updated → **activation-gateway** serves the same `ping_count` from **Redshift and Snowflake** adapters  
+5. **Cockpit** proxies see the asset + finding  
+6. **Ask PRISM** returns a grounded answer citing tool evidence  
 
-Bronze JSON → PySpark silver (typed, expectation-filtered, deduped) → gold aggregates, written as parquet under `.data/lakehouse/{silver,gold}/`.  
-Data-quality expectations live in `lakehouse/quality/expectations.yaml` and are applied as Unity Catalog table properties (`quality.expectation.*`) via `unity_catalog/bootstrap.sql` (manual workspace apply). Lakeflow Declarative Pipelines reference those property keys.  
-dbt Core models silver→gold for analytics tests (DuckDB in CI; Databricks SQL warehouse profile documented for real runs).
+Operator entrypoint: `make demo` then `make e2e`. Talk track: [docs/DEMO_SCRIPT.md](docs/DEMO_SCRIPT.md).
 
-## Computer vision path (Phase 3)
+## Path summaries by phase
 
-Fleet frames → `cv-service` (OpenCV preprocess + ONNX YOLO-family, CPU) → schema-valid `CvFinding` records.  
-Findings with `confidence < threshold` land in `.data/cv-review-queue/pending/` for human review (Phase 5); higher-confidence findings publish under `.data/cv-findings/published/`. No GPU / paid vision APIs in CI (ADR-001).
+| Phase | Path |
+|------:|------|
+| 1 | Simulator → contract gate → bronze Hive partitions / DLQ |
+| 2 | Bronze → Spark silver/gold parquet; UC bootstrap structural; dbt DuckDB |
+| 3 | Frames → ONNX YOLO CPU → publish or review-queue by confidence |
+| 4 | Gold → activation-gateway → Redshift + Snowflake behind one contract ([ADR-002](docs/adr/002-multi-warehouse-activation.md)) |
+| 5 | Review queue files → RBAC decide → gold writeback + audit |
+| 6 | AWS Terraform: VPC, ALB+WAF, ECS, RDS, S3, KMS, Secrets+rotation, IAM, observability |
+| 7 | Azure DR Terraform + failover runbook ([ADR-003](docs/adr/003-azure-dr-two-cloud-tradeoff.md)) |
+| 8 | Cockpit twin on `:9101` (WebGPU/WebGL, incident scrubber) |
+| 9 | Ask PRISM tool-grounded copilot ([ADR-004](docs/adr/004-copilot-non-fabrication.md)) |
+| 10 | OTel through ECS-bound services; CW LES dashboards/alarms; IAM/WAF audits; secrets rotation |
+| 11 | Demo seed, golden-path e2e, screenshots, finalized docs |
 
-## Activation path (Phase 4)
+## Host ports (9100–9199)
 
-Gold parquet (S3 or local) → `activation-gateway` (`:9103`) behind `activation-contract`:
+| Port | Service |
+|-----:|---------|
+| 9100 | control-plane |
+| 9101 | cockpit |
+| 9102 | cv-service |
+| 9103 | activation-gateway |
+| 9104 | ai-copilot |
+| 9105 | ingestion |
+| 9106 | OTel collector (OTLP HTTP) |
+| 9110 / 9111 | mock Redshift / Snowflake |
+| 9199 | foundation stub |
 
-- **Redshift adapter** — zero-ETL / auto-copy preferred; COPY from Parquet/Iceberg fallback → `materialized_copy`
-- **Snowflake adapter** — Iceberg REST / Horizon Catalog zero-copy against the **same** gold URI → `zero_copy` (no storage duplication)
-- **Routing registry** — `warehouse=auto` queries the current primary; callers may pin a warehouse for failover / conformance
-- **Conformance suite** — identical SQL against both mocked warehouse endpoints (`:9110` / `:9111`); assert equivalent results
+## ADRs
 
-Why both warehouses: [ADR-002](docs/adr/002-multi-warehouse-activation.md).
-
-## Control plane path (Phase 5)
-
-`cv-service` low-confidence findings → `.data/cv-review-queue/pending/` → Django control plane (`:9100`):
-
-- Sync/list reads the **same pending JSON files** cv-service writes
-- `viewer` / `inspector` / `fleet-admin` RBAC on the Ninja API
-- Approve / reject / relabel → `ReviewDecision` + `AuditLogEntry`; pending file → `decided/`
-- Approved/relabeled → lakehouse gold (`.data/lakehouse/gold/cv_findings/`, `reviewed=true`) via Django-Q2 (inline on SQLite)
-
-## AWS platform path (Phase 6)
-
-Terraform under `infra/terraform/aws/` (validate / tflint / checkov / plan only — never apply in CI or by agents):
-
-- Multi-AZ VPC (public / private / isolated), NAT, flow logs, S3 + CloudWatch VPC endpoints
-- ALB + WAFv2 with path-based routing to Fargate services; Service Connect for east-west calls
-- RDS PostgreSQL Multi-AZ (encrypted, isolated subnets, IAM DB auth)
-- S3 raw/gold (CMK) with raw `bronze/` → Glacier lifecycle; dedicated SSE-S3 access-logs bucket for ALB
-- Secrets Manager + least-privilege per-task IAM (explicit SIDs / ARNs)
-- CloudWatch Container Insights, ops dashboard, alarms (5xx / latency / queue depth)
-
-Local `docker compose` remains the day-to-day path; Terraform does not replace it.
-
-## Digital twin cockpit (Phase 8)
-
-Vue 3 + Vite + Pinia UI on `:9101` with a dark control-room design system.
-Three.js WebGPURenderer (WebGL fallback) renders fleet assets whose color/glow
-reflects open work orders and unreviewed CV findings from the control-plane.
-Detail panel pulls telemetry through activation-gateway’s query contract, CV
-bounding boxes on fixture frames resolved by control-plane, and work-order
-history. An incident scrubber replays those events in time order.
-
-## Ask PRISM copilot (Phase 9)
-
-`ai-copilot` on `:9104` answers only from tool calls against activation-gateway,
-the CV-finding store, and control-plane work orders. ADR-004 forbids fabricating
-numbers or ids; CI asserts answer tokens ⊆ that turn’s tool evidence. Cockpit
-exposes the panel as **Ask PRISM**.
-
-## Azure DR path (Phase 7)
-
-Warm-standby Terraform under `infra/terraform/azure/` (validate / tflint / checkov only — never apply in CI):
-
-- ADLS Gen2 lakehouse mirror (bronze / silver / gold containers, LRS)
-- Azure Databricks workspace + scheduled S3→ADLS replication job (**RPO ≈ 15m**, **RTO ≈ 4h** manual)
-- Failover runbook for repointing activation-gateway at `abfss://` gold ([azure-dr-failover.md](docs/runbooks/azure-dr-failover.md))
-- Tradeoff: [ADR-003](docs/adr/003-azure-dr-two-cloud-tradeoff.md) — two-cloud cost vs DR benefit (honest, not oversold)
+See [docs/adr/index.md](docs/adr/index.md) — four accepted ADRs covering cost safety, multi-warehouse activation, Azure DR tradeoff, and copilot non-fabrication.
 
 ## Cost safety
 
-See [ADR-001](docs/adr/001-cost-safety-policy.md). Local path uses Docker Compose + emulators (DuckDB, LocalStack, moto, mock warehouses, SQLite). CI validates Terraform and uploads a reviewable AWS plan artifact; humans apply.
-
-## Build order
-
-Phases 0 → 11 are documented in the build brief and tracked via `PHASE_N_COMPLETION.md` files at the repo root. Phase 0 scaffolds the monorepo, rules, CI, contract stubs, and empty Terraform roots only.
+[ADR-001](docs/adr/001-cost-safety-policy.md). CI never applies Terraform, never calls paid APIs, never runs GPU inference. Emulators: DuckDB, LocalStack, mock warehouses, SQLite, CPU ONNX.

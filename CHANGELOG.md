@@ -4,6 +4,12 @@ All notable changes to PRISM are documented here.
 
 ## [Unreleased]
 
+### Phase 11 — Productionization & demo
+
+- End-to-end golden-path test (`tests/e2e`) + CI compose job after all prior gates
+- `make demo` seed/dataset stands the full stack up locally in under five minutes
+- Finalized ARCHITECTURE.md, four ADRs, DEMO_SCRIPT.md; committed cockpit screenshots
+
 ### Phase 10 — Observability & security
 
 - OpenTelemetry (`prism-otel`) through all ECS-bound services + local collector `:9106`

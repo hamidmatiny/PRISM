@@ -1,0 +1,13 @@
+# Demo / golden-path overrides — used by `make demo` and CI e2e.
+# Forces CV findings into the human-review queue so the approve→gold path is exercised.
+services:
+  cv-service:
+    environment:
+      PRISM_CV_CONFIDENCE_THRESHOLD: "0.99"
+
+  ingestion:
+    environment:
+      # Keep demo assets aligned with activation gold fixtures.
+      PRISM_ASSET_IDS: "PRISM-AST-001,PRISM-AST-002,PRISM-AST-003"
+      PRISM_EMIT_RATE: "1"
+      PRISM_FAILURE_RATE: "0"

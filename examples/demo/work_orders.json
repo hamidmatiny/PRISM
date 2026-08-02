@@ -1,0 +1,12 @@
+[
+  {
+    "asset_id": "PRISM-AST-001",
+    "title": "Inspect body panel after low-confidence CV dent",
+    "description": "Demo WO opened for the golden-path asset."
+  },
+  {
+    "asset_id": "PRISM-AST-002",
+    "title": "Scheduled tire check",
+    "description": "Routine maintenance — demo seed."
+  }
+]

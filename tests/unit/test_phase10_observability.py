@@ -38,10 +38,11 @@ def test_ckv2_aws_57_no_longer_skipped() -> None:
     )
 
     assert "CKV2_AWS_57" not in skips
-    assert "CKV2_AWS_57" in ledger  # mentioned as closed
-    assert "Closed in Phase 10" in ledger
+    assert "CKV2_AWS_57" in ledger  # mentioned as resolved
+    assert "Resolved (not skipped)" in ledger
     assert "#checkov:skip=CKV2_AWS_57" not in secrets
     assert "aws_secretsmanager_secret_rotation" in rotation
+    assert "aws_secretsmanager_secret_rotation" in secrets
 
 
 def test_per_service_dashboards_and_waf_owasp_additions() -> None:

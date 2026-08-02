@@ -20,22 +20,18 @@ PRISM ingests fleet camera + sensor telemetry, runs computer-vision defect/anoma
 | 7 | Azure DR layer | Complete — see `PHASE_7_COMPLETION.md` |
 | 8 | Digital twin cockpit | Complete — see `PHASE_8_COMPLETION.md` |
 | 9 | AI copilot | Complete — see `PHASE_9_COMPLETION.md` |
-| 10 | Observability & security | Not started |
-| 11 | Productionization & demo | Not started |
+| 10 | Observability & security | Complete — see `PHASE_10_COMPLETION.md` |
+| 11 | Productionization & demo | Complete — see `PHASE_11_COMPLETION.md` |
 
-## Quick start (Phase 5)
+## Quick start (Phase 11 demo)
 
 ```bash
-cp .env.example .env
-python3 -m venv .venv && source .venv/bin/activate
-pip install -e contracts/cv-finding-schema -e control-plane
-docker compose up -d --build control-plane control-plane-worker
-curl -s http://localhost:9100/health
-TOKEN=$(docker compose exec -T control-plane python manage.py print_api_token inspector)
-curl -s http://localhost:9100/api/v1/review-queue -H "Authorization: Bearer $TOKEN"
+make demo
+# open http://127.0.0.1:9101 — paste the printed viewer token
+PRISM_E2E=1 pytest -q tests/e2e -m e2e   # optional golden-path proof
 ```
 
-No cloud credentials required ([ADR-001](docs/adr/001-cost-safety-policy.md)). Review queue is the real `cv-service` pending directory on the bind-mounted `.data` volume.
+Talk track: [docs/DEMO_SCRIPT.md](docs/DEMO_SCRIPT.md). No cloud credentials ([ADR-001](docs/adr/001-cost-safety-policy.md)).
 
 ## Monorepo layout
 

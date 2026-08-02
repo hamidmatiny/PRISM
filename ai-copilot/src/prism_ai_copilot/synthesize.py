@@ -7,6 +7,7 @@ from typing import Any
 
 from prism_ai_copilot.non_fabrication import (
     EvidenceItem,
+    add_number,
     assert_answer_grounded,
     format_number,
 )
@@ -120,6 +121,13 @@ def synthesize_answer(
         pending = cv.get("pending") or []
         if asset:
             asset_pending = [p for p in pending if str(p.get("asset_id", "")).upper() == asset]
+            # Counts derived from this turn's tool payload must be evidence too (ADR-004).
+            add_number(
+                evidence,
+                "synthesize",
+                f"cv:{asset}:pending",
+                float(len(asset_pending)),
+            )
             parts.append(
                 f"CV store: {asset} has {format_number(len(asset_pending))} unreviewed "
                 f"queue finding(s) (fleet pending_count={format_number(pending_n)}, "
@@ -154,6 +162,12 @@ def synthesize_answer(
         orders = work_orders.get("orders") or []
         if asset:
             asset_orders = [o for o in orders if str(o.get("asset_id", "")).upper() == asset]
+            add_number(
+                evidence,
+                "synthesize",
+                f"wo:{asset}:count",
+                float(len(asset_orders)),
+            )
             parts.append(
                 f"Control-plane work orders for {asset}: "
                 f"{format_number(len(asset_orders))} "

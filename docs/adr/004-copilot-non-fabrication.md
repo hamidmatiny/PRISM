@@ -1,6 +1,6 @@
 # ADR 004 — Ask PRISM copilot non-fabrication contract
 
-**Status:** Accepted  
+**Status:** Accepted (finalized Phase 11)  
 **Date:** 2026-08  
 **Phases:** 9 (`ai-copilot/`)
 

@@ -1,0 +1,5 @@
+[
+  {"asset_id": "PRISM-AST-001", "name": "Bay Area Van 001", "status": "active"},
+  {"asset_id": "PRISM-AST-002", "name": "Bay Area Van 002", "status": "active"},
+  {"asset_id": "PRISM-AST-003", "name": "Bay Area Van 003", "status": "active"}
+]

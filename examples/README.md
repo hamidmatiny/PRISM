@@ -1,3 +1,6 @@
 # examples
 
-Demo snippets and sample payloads. Seed/demo dataset lands in Phase 11; contract example payloads may appear earlier as schemas fill in.
+Demo snippets and sample payloads.
+
+Phase 11 seed / `make demo` lives in [`demo/`](demo/) — materializes `.data` gold,
+boots compose with `docker-compose.demo.yml`, and prints a viewer token.

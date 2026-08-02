@@ -19,8 +19,11 @@ dev = [
 packages = []
 
 [tool.pytest.ini_options]
-testpaths = ["tests/unit"]
+testpaths = ["tests/unit", "tests/e2e"]
 DJANGO_SETTINGS_MODULE = "prism_control.settings"
+markers = [
+  "e2e: live docker-compose golden-path (requires PRISM_E2E=1)",
+]
 pythonpath = [
   ".",
   "contracts/telemetry-schema/src",

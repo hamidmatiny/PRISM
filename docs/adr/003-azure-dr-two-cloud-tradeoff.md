@@ -1,6 +1,6 @@
 # ADR 003 — Azure warm-standby DR vs two-cloud operational cost
 
-**Status:** Accepted (revisit at production scale)  
+**Status:** Accepted (finalized Phase 11; revisit at production scale)  
 **Date:** 2026-08  
 **Phases:** 7+
 

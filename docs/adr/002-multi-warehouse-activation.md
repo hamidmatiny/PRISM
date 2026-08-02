@@ -1,6 +1,6 @@
 # ADR 002 — Support both Redshift and Snowflake behind one activation contract
 
-**Status:** Accepted  
+**Status:** Accepted (finalized Phase 11)  
 **Date:** 2026-08  
 **Phases:** 4+
 

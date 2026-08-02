@@ -5,7 +5,8 @@
 	checkov-aws checkov-azure tflint-aws tflint-azure export-schemas \
 	lakehouse-run lakehouse-run-live dbt-build uc-validate \
 	phase1-check phase2-check phase3-check phase4-check phase5-check \
-	phase6-check phase7-check phase8-check phase9-check phase10-check cockpit-build
+	phase6-check phase7-check phase8-check phase9-check phase10-check \
+	phase11-check cockpit-build demo e2e
 
 CHECKOV_VERSION := $(shell tr -d '[:space:]' < infra/terraform/CHECKOV_VERSION)
 
@@ -33,9 +34,18 @@ help:
 	@echo "  make phase8-check       - lint + test + cockpit-build"
 	@echo "  make phase9-check       - lint + test (includes copilot grounding)"
 	@echo "  make phase10-check      - lint + test + terraform-validate + checkov-aws"
+	@echo "  make demo               - full local demo stack + seed (<5 min)"
+	@echo "  make e2e                - live golden-path (requires make demo)"
+	@echo "  make phase11-check      - lint + unit tests + cockpit + terraform gates"
 
 up:
 	docker compose up -d --build
+
+demo:
+	bash examples/demo/run_demo.sh
+
+e2e:
+	PRISM_E2E=1 pytest -q tests/e2e
 
 down:
 	docker compose down
@@ -136,3 +146,6 @@ phase8-check: lint test cockpit-build
 phase9-check: lint test
 
 phase10-check: lint test terraform-validate checkov-aws
+
+# Prior-phase gates simultaneously (e2e is live — run `make demo && make e2e` separately).
+phase11-check: lint test cockpit-build terraform-validate tflint-aws tflint-azure checkov-aws checkov-azure

@@ -1,6 +1,6 @@
 # ADR 001 — Cost-safety policy
 
-**Status:** Accepted  
+**Status:** Accepted (finalized Phase 11)  
 **Date:** 2026-08  
 **Phases:** 0+ (all phases)
 
