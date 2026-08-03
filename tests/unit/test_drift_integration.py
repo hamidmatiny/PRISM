@@ -76,7 +76,16 @@ def three_live_services(tmp_path: Path):
     incident_app = create_incident_app(incident_cfg)
     incident_app.state.store.policies = TripPolicies(
         quarantine_rate_window=5,
-        cooldown_seconds=0.3,
+        # Phase 18: every trip check now shells out to a real `opa eval`
+        # subprocess (previously an in-memory Python comparison). This test
+        # drives ~200+12 observations through the FSM, and `maybe_enter_half_open()`
+        # is checked lazily before *every* observation and every /breakers read
+        # (fsm.py). A short cooldown here is a race against real subprocess
+        # latency accumulated across those events, not a deliberate test of
+        # half-open recovery (which this test never exercises) -- so it must be
+        # wide enough that no realistic amount of opa-eval latency between the
+        # trip and the final assertion can flip the breaker to half_open first.
+        cooldown_seconds=120.0,
     )
     incident_app.state.store._breakers.clear()
     _run_uvicorn(incident_app, incident_port)
