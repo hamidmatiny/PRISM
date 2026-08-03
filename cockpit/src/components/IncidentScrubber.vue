@@ -18,9 +18,22 @@ const timeLabel = computed(() => {
   return new Date(cursorMs.value).toISOString();
 });
 
-watch(activeEvent, (ev) => {
-  if (ev?.asset_id) selection.select(ev.asset_id);
-});
+// Watch the event's *id*, not the activeEvent object itself. incident.rebuild()
+// runs on every background poll (Breaker Board every 3s) and always rebuilds the
+// events array from scratch, so activeEvent -- a computed derived from that array
+// -- returns a brand-new object reference every time, even when the logically
+// active event hasn't changed (cursorMs untouched). A plain `watch(activeEvent, ...)`
+// fires on reference change alone, so it was re-selecting the cursor's asset on
+// every poll and stomping whatever asset the user had just clicked in the Breaker
+// Board or 3D twin. Keying off `id` (a stable primitive carried across rebuilds for
+// the same logical event) makes this only fire on a real change of active event.
+watch(
+  () => activeEvent.value?.id,
+  (id) => {
+    const ev = activeEvent.value;
+    if (id && ev?.asset_id) selection.select(ev.asset_id);
+  },
+);
 
 function onInput(e: Event) {
   const v = Number((e.target as HTMLInputElement).value);
