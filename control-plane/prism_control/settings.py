@@ -36,6 +36,10 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
+    # Serves STATIC_ROOT directly from gunicorn (ADR-001: no nginx / extra
+    # container just to hand back admin's own CSS/JS in this local-first
+    # deployment). Must sit right after SecurityMiddleware per whitenoise docs.
+    "whitenoise.middleware.WhiteNoiseMiddleware",
     "prism_control.cors.SimpleCorsMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
@@ -84,6 +88,12 @@ USE_TZ = True
 
 STATIC_URL = "static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
+STORAGES = {
+    "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
+    # Compressed + hashed filenames, served straight out of the WSGI process
+    # via WhiteNoiseMiddleware above -- no separate static file server needed.
+    "staticfiles": {"BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage"},
+}
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 # CV review queue — same paths cv-service writes (Phase 3).
