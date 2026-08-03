@@ -22,6 +22,7 @@ class CvConfig:
     model_id: str = "yolo-fleet-defects-tiny"
     max_detections: int = 20
     incident_engine_url: str = "http://127.0.0.1:9108"
+    drift_monitor_url: str = "http://127.0.0.1:9109"
 
     @property
     def review_queue_dir(self) -> Path:
@@ -50,4 +51,5 @@ class CvConfig:
             model_id=os.getenv("PRISM_CV_MODEL_ID", "yolo-fleet-defects-tiny"),
             max_detections=int(os.getenv("PRISM_CV_MAX_DETECTIONS", "20")),
             incident_engine_url=os.getenv("PRISM_INCIDENT_ENGINE_URL", "http://127.0.0.1:9108"),
+            drift_monitor_url=os.getenv("PRISM_DRIFT_MONITOR_URL", "http://127.0.0.1:9109"),
         )

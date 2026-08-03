@@ -4,6 +4,13 @@ All notable changes to PRISM are documented here.
 
 ## [Unreleased]
 
+### Phase 16 — Drift detection with honest baseline gating
+
+- `drift-monitor/` on `:9109` — KS test on numeric telemetry features, centroid distance + KS-on-norms on a real CV finding feature vector (honestly labeled — PRISM's cv-service has no deep embedding head, see PHASE_16_COMPLETION.md)
+- Baseline never built from `synthetic_scenario=true` data (ADR-005); `/health` stays non-ready until a real baseline earns it
+- Feeds incident-engine's dormant `drifted_features` policy — the exact producer Phase 14 shipped wired-but-waiting
+- `ingestion`/`cv-service` report features best-effort, fail-open (`drift_client.py`, same pattern as `incident_client.py`)
+
 ## [1.1.0] — 2026-08-03 — Chaos/audit core (Phases 12–15)
 
 See [docs/RELEASE_PLAN.md](docs/RELEASE_PLAN.md).

@@ -53,6 +53,9 @@ jobs:
           - service: incident-engine
             dockerfile: incident-engine/Dockerfile
             context: .
+          - service: drift-monitor
+            dockerfile: drift-monitor/Dockerfile
+            context: .
           - service: cockpit
             dockerfile: cockpit/Dockerfile
             context: ./cockpit

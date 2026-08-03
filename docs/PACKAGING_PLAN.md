@@ -49,6 +49,15 @@ These existed on `main` since Phase 12/14 but were not in the GHCR publish
 matrix until this release — `release-packages.yml`'s matrix is now 9 services,
 not 7.
 
+### v1.2.0 additions (phase 16 shipped service)
+
+| Service | Image |
+|---------|-------|
+| `drift-monitor` | `ghcr.io/hamidmatiny/prism/drift-monitor` |
+
+Added to the GHCR publish matrix in the same commit that shipped the service
+(Phase 16) rather than as a later fix — the v1.1.0 gap above is exactly why.
+
 ### Internal-only (do not publish)
 
 foundation-stub (nginx), LocalStack, embedded mock Redshift/Snowflake — ADR-001

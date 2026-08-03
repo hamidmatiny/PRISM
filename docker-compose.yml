@@ -111,6 +111,41 @@ services:
       retries: 5
       start_period: 15s
 
+  # Phase 16 — honest-baseline drift detection (ADR-005: no statistical test
+  # runs before a real, non-synthetic baseline exists).
+  drift-monitor:
+    build:
+      context: .
+      dockerfile: drift-monitor/Dockerfile
+    container_name: prism-drift-monitor
+    ports:
+      - "9109:9109"
+    environment:
+      PRISM_DRIFT_MONITOR_PORT: "9109"
+      PRISM_INCIDENT_ENGINE_URL: http://incident-engine:9108
+      PRISM_DRIFT_BASELINE_SAMPLES: ${PRISM_DRIFT_BASELINE_SAMPLES:-20}
+      PRISM_DRIFT_WINDOW_SIZE: ${PRISM_DRIFT_WINDOW_SIZE:-10}
+      OTEL_SERVICE_NAME: drift-monitor
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4318
+      OTEL_RESOURCE_ATTRIBUTES: service.namespace=prism,deployment.environment=local
+    depends_on:
+      otel-collector:
+        condition: service_started
+      incident-engine:
+        condition: service_started
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request; urllib.request.urlopen('http://127.0.0.1:9109/health')",
+        ]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 15s
+
   ingestion:
     build:
       context: .
@@ -129,6 +164,7 @@ services:
       PRISM_INGESTION_PORT: "9105"
       PRISM_SIM_SEED: ${PRISM_SIM_SEED:-42}
       PRISM_INCIDENT_ENGINE_URL: http://incident-engine:9108
+      PRISM_DRIFT_MONITOR_URL: http://drift-monitor:9109
       LOCALSTACK_ENDPOINT: ${LOCALSTACK_ENDPOINT:-http://localstack:4566}
       AWS_DEFAULT_REGION: us-east-1
       AWS_ACCESS_KEY_ID: test
@@ -142,6 +178,8 @@ services:
       scenario-engine:
         condition: service_started
       incident-engine:
+        condition: service_started
+      drift-monitor:
         condition: service_started
     volumes:
       # Bind mount so host dbt/Spark and containers share one bronze zone.
@@ -174,6 +212,7 @@ services:
       PRISM_CV_MODEL_PATH: /app/cv-service/models/yolo_fleet_defects_tiny.onnx
       PRISM_CV_LABELS_PATH: /app/cv-service/models/labels.json
       PRISM_INCIDENT_ENGINE_URL: http://incident-engine:9108
+      PRISM_DRIFT_MONITOR_URL: http://drift-monitor:9109
       OTEL_SERVICE_NAME: cv-service
       OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4318
       OTEL_RESOURCE_ATTRIBUTES: service.namespace=prism,deployment.environment=local
@@ -181,6 +220,8 @@ services:
       otel-collector:
         condition: service_started
       incident-engine:
+        condition: service_started
+      drift-monitor:
         condition: service_started
     volumes:
       - ./.data:/data

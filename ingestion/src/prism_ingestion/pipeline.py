@@ -11,6 +11,7 @@ from typing import Any
 
 from prism_ingestion.bronze import write_bronze_record, write_dlq_record
 from prism_ingestion.config import IngestConfig
+from prism_ingestion.drift_client import report_telemetry_features
 from prism_ingestion.incident_client import report_observation
 from prism_ingestion.producer import StreamProducer, build_producer
 from prism_ingestion.simulator import FleetSimulator
@@ -184,6 +185,13 @@ class IngestPipeline:
                 asset_id=partition_key if partition_key != "unknown" else None,
                 kind="ingestion_accepted",
             )
+            if kind == "sensor_ping":
+                report_telemetry_features(
+                    self.config.drift_monitor_url,
+                    asset_id=partition_key if partition_key != "unknown" else None,
+                    payload=cleaned,
+                    synthetic_scenario=bool(cleaned.get("synthetic_scenario", False)),
+                )
             if span is not None:
                 span.set_attribute("prism.accepted", True)
                 span.set_attribute("prism.asset_id", partition_key)

@@ -11,6 +11,7 @@ import numpy as np
 from prism_cv_finding_schema import CvFinding
 from prism_cv_service.config import CvConfig
 from prism_cv_service.detector import YoloOnnxDetector
+from prism_cv_service.drift_client import report_cv_finding_features
 from prism_cv_service.incident_client import (
     breaker_is_open,
     report_qa_observation,
@@ -70,6 +71,11 @@ class CvPipeline:
             )
             # Re-validate via model_validate for structural guarantee.
             finding = CvFinding.model_validate(finding.to_payload())
+            report_cv_finding_features(
+                self.config.drift_monitor_url,
+                asset_id=asset_id,
+                finding_payload=finding.to_payload(),
+            )
 
             low_confidence = finding.confidence < threshold
             if low_confidence or forced_review:
