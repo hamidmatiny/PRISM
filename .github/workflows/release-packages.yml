@@ -47,6 +47,12 @@ jobs:
           - service: ai-copilot
             dockerfile: ai-copilot/Dockerfile
             context: .
+          - service: scenario-engine
+            dockerfile: scenario-engine/Dockerfile
+            context: .
+          - service: incident-engine
+            dockerfile: incident-engine/Dockerfile
+            context: .
           - service: cockpit
             dockerfile: cockpit/Dockerfile
             context: ./cockpit

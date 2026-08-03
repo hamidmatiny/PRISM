@@ -38,6 +38,17 @@ ghcr.io/hamidmatiny/prism/<service>:<tag>
 | `cockpit` | `ghcr.io/hamidmatiny/prism/cockpit` |
 | `ai-copilot` | `ghcr.io/hamidmatiny/prism/ai-copilot` |
 
+### v1.1.0 additions (phases 12/14 shipped services, published starting v1.1.0)
+
+| Service | Image |
+|---------|-------|
+| `scenario-engine` | `ghcr.io/hamidmatiny/prism/scenario-engine` |
+| `incident-engine` | `ghcr.io/hamidmatiny/prism/incident-engine` |
+
+These existed on `main` since Phase 12/14 but were not in the GHCR publish
+matrix until this release — `release-packages.yml`'s matrix is now 9 services,
+not 7.
+
 ### Internal-only (do not publish)
 
 foundation-stub (nginx), LocalStack, embedded mock Redshift/Snowflake — ADR-001
