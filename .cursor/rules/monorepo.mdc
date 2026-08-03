@@ -10,7 +10,7 @@ alwaysApply: true
 Keep code in the owning component directory. Do not invent parallel top-level trees.
 
 - Contracts → `contracts/`
-- Services → `ingestion/`, `cv-service/`, `activation-gateway/`, `control-plane/`, `ai-copilot/`, `cockpit/`, `scenario-engine/`
+- Services → `ingestion/`, `cv-service/`, `activation-gateway/`, `control-plane/`, `ai-copilot/`, `cockpit/`, `scenario-engine/`, `incident-engine/`, `drift-monitor/`, `orchestration/`
 - Data → `lakehouse/`, `dbt/`
 - Infra → `infra/terraform/{aws,azure}/`
 - Observability → `observability/`
@@ -49,7 +49,11 @@ Commit only when the user asks (unless a phase Definition of Done explicitly req
 | 9105 | ingestion (status / metrics) |
 | 9106 | OpenTelemetry collector (OTLP HTTP) |
 | 9107 | scenario-engine (Phase 12) |
-| 9108–9198 | future |
+| 9108 | incident-engine (Phase 14) |
+| 9109 | drift-monitor (Phase 16) |
+| 9110 / 9111 | mock Redshift / Snowflake |
+| 9112 | orchestration / Dagster webserver (Phase 17, profile `dagster`) |
+| 9113–9198 | future |
 | 9199 | foundation-stub / docs static |
 
 ## Secrets

@@ -25,6 +25,7 @@ output/exit state for each — not prose describing what was tested.
 | 14 | [PHASE_14_COMPLETION.md](PHASE_14_COMPLETION.md) |
 | 15 | [PHASE_15_COMPLETION.md](PHASE_15_COMPLETION.md) |
 | 16 | [PHASE_16_COMPLETION.md](PHASE_16_COMPLETION.md) |
+| 17 | [PHASE_17_COMPLETION.md](PHASE_17_COMPLETION.md) |
 
 - **v1.0.0** — Phases 0–11 close-out  
 - **v1.1.0** — Phases 12–15 — see [RELEASE_PLAN.md](../RELEASE_PLAN.md)

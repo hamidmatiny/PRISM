@@ -11,5 +11,6 @@ Every `NNN-*.md` ADR in this directory **must** appear in the table below (enfor
 | [003](003-azure-dr-two-cloud-tradeoff.md) | Azure warm-standby DR vs two-cloud operational cost | Accepted (revisit at production scale) |
 | [004](004-copilot-non-fabrication.md) | Ask PRISM tool-grounded non-fabrication (no invented numbers) | Accepted |
 | [005](005-earned-evidence-policy.md) | Earned-evidence policy (no unearned capability / readiness claims) | Accepted |
+| [006](006-dagster-orchestration.md) | Dagster for lakehouse + drift + optional scenario-reseed asset graph | Accepted |
 
-ADRs 001–004 closed the v1.0.0 portfolio; ADR-005 opens the v1.1 honesty bar for chaos / drift / incidents. New ADRs should be added here before implementation diverges.
+ADRs 001–004 closed the v1.0.0 portfolio; ADR-005+ cover the v1.1/v1.2 honesty and orchestration bar. New ADRs should be added here before implementation diverges.

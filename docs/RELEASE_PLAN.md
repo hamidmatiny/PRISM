@@ -48,6 +48,7 @@ Full Phases 0–11 portfolio close-out. See git tag `v1.0.0` and
 **Checklist:**
 
 - [x] Phase 16 complete under `docs/phases/PHASE_16_COMPLETION.md`
+- [x] Phase 17 complete under `docs/phases/PHASE_17_COMPLETION.md`
 - [ ] Phase 17 complete
 - [ ] Phase 18 complete
 - [ ] Phase 19 complete

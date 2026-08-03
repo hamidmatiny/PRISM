@@ -20,6 +20,8 @@ REQUIRED_TOP_LEVEL = [
     "cockpit",
     "scenario-engine",
     "incident-engine",
+    "drift-monitor",
+    "orchestration",
     "infra/terraform/aws",
     "infra/terraform/azure",
     "observability",
@@ -49,10 +51,14 @@ REQUIRED_FILES = [
     "docs/phases/PHASE_12_COMPLETION.md",
     "docs/phases/PHASE_13_COMPLETION.md",
     "docs/phases/PHASE_14_COMPLETION.md",
+    "docs/phases/PHASE_15_COMPLETION.md",
+    "docs/phases/PHASE_16_COMPLETION.md",
+    "docs/phases/PHASE_17_COMPLETION.md",
     "docs/DEMO_SCRIPT.md",
     "docs/adr/index.md",
     "docs/adr/004-copilot-non-fabrication.md",
     "docs/adr/005-earned-evidence-policy.md",
+    "docs/adr/006-dagster-orchestration.md",
     "docs/runbooks/README.md",
     "docs/README.md",
     "examples/demo/run_demo.sh",
@@ -75,6 +81,12 @@ REQUIRED_FILES = [
     "incident-engine/pyproject.toml",
     "incident-engine/Dockerfile",
     "incident-engine/README.md",
+    "drift-monitor/pyproject.toml",
+    "drift-monitor/Dockerfile",
+    "drift-monitor/README.md",
+    "orchestration/pyproject.toml",
+    "orchestration/Dockerfile",
+    "orchestration/README.md",
     "docker-compose.yml",
     "cockpit/package.json",
     "cockpit/src/main.ts",
@@ -162,6 +174,8 @@ def test_every_top_level_component_has_readme() -> None:
         "cockpit",
         "scenario-engine",
         "incident-engine",
+        "drift-monitor",
+        "orchestration",
         "infra",
         "observability",
         "examples",
@@ -234,6 +248,7 @@ def test_adr_index_lists_every_adr_file() -> None:
         "003-azure-dr-two-cloud-tradeoff.md",
         "004-copilot-non-fabrication.md",
         "005-earned-evidence-policy.md",
+        "006-dagster-orchestration.md",
     ], f"Unexpected ADR set: {adr_files}"
     missing = [name for name in adr_files if name not in index]
     assert missing == [], f"docs/adr/index.md missing rows for: {missing}"
@@ -250,7 +265,7 @@ def test_runbooks_index_lists_written_runbooks() -> None:
 
 def test_phase_completion_docs_are_zero_padded_under_docs_phases() -> None:
     phases = ROOT / "docs/phases"
-    expected = [f"PHASE_{n:02d}_COMPLETION.md" for n in range(17)]
+    expected = [f"PHASE_{n:02d}_COMPLETION.md" for n in range(18)]
     present = sorted(p.name for p in phases.glob("PHASE_*_COMPLETION.md"))
     assert present == expected, f"Expected {expected}, got {present}"
     assert not list(ROOT.glob("PHASE_*_COMPLETION.md")), "phase docs must not remain at repo root"

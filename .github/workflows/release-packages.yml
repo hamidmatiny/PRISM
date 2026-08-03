@@ -56,6 +56,9 @@ jobs:
           - service: drift-monitor
             dockerfile: drift-monitor/Dockerfile
             context: .
+          - service: orchestration
+            dockerfile: orchestration/Dockerfile
+            context: .
           - service: cockpit
             dockerfile: cockpit/Dockerfile
             context: ./cockpit

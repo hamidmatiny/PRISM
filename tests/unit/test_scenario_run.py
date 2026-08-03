@@ -9,13 +9,13 @@ from pathlib import Path
 import httpx
 import pytest
 import uvicorn
+
 from prism_incident_engine.api import create_app as create_incident_app
 from prism_incident_engine.config import IncidentConfig
-from prism_scenario_engine.api import create_app as create_scenario_app
-from prism_scenario_engine.config import ScenarioConfig
-
 from prism_ingestion.config import IngestConfig
 from prism_ingestion.scenario_run import MAX_TICKS, ScenarioRunError, run_scenario_batch
+from prism_scenario_engine.api import create_app as create_scenario_app
+from prism_scenario_engine.config import ScenarioConfig
 
 
 def _free_port() -> int:

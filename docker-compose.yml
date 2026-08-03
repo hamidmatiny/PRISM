@@ -19,6 +19,8 @@
 #   /data/control-plane       ← SQLite (local) / app state
 # Fixture-only CI path (synthetic bronze, not live ingest):
 #   docker compose --profile lakehouse run --rm lakehouse-fixtures
+# Dagster UI (Phase 17):
+#   docker compose --profile dagster up -d --build orchestration
 
 name: prism
 
@@ -145,6 +147,33 @@ services:
       timeout: 3s
       retries: 5
       start_period: 15s
+
+  # Phase 17 — Dagster asset graph (optional UI). Materialize in-process via
+  # `python -m prism_orchestration` without this service.
+  orchestration:
+    profiles: ["dagster"]
+    build:
+      context: .
+      dockerfile: orchestration/Dockerfile
+    container_name: prism-orchestration
+    ports:
+      - "9112:9112"
+    environment:
+      PRISM_ORCH_PORT: "9112"
+      PRISM_ORCH_BRONZE_ROOT: /fixtures/bronze
+      PRISM_ORCH_WAREHOUSE_ROOT: /data/lakehouse
+      PRISM_DRIFT_MONITOR_URL: http://drift-monitor:9109
+      PRISM_SCENARIO_URL: http://scenario-engine:9107
+      PRISM_DAGSTER_DRIFT_RESEED: ${PRISM_DAGSTER_DRIFT_RESEED:-0}
+      DAGSTER_HOME: /data/dagster
+    volumes:
+      - ./.data:/data
+      - ./lakehouse/fixtures/bronze:/fixtures/bronze:ro
+    depends_on:
+      drift-monitor:
+        condition: service_started
+      scenario-engine:
+        condition: service_started
 
   ingestion:
     build:

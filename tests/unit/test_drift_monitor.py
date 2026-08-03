@@ -6,6 +6,7 @@ import random
 
 import pytest
 from fastapi.testclient import TestClient
+
 from prism_drift_monitor.api import create_app
 from prism_drift_monitor.config import DriftConfig
 from prism_drift_monitor.detector import centroid_distance, ks_on_norms, ks_per_feature

@@ -150,12 +150,14 @@ PRISM owns **9100–9199** (avoids Argus / Vulcan on shared laptops).
 | 9106 | OpenTelemetry collector (OTLP HTTP) |
 | 9107 | scenario-engine |
 | 9108 | incident-engine |
+| 9109 | drift-monitor |
+| 9112 | orchestration / Dagster (optional profile `dagster`) |
 | 9199 | Phase 0 foundation stub |
 
 ## Engineering bar
 
 1. **Contract-first** — schemas live in `contracts/`; services import, never duplicate.
-2. **ADRs** for real decisions — [ADR-001](docs/adr/001-cost-safety-policy.md)–[ADR-005](docs/adr/005-earned-evidence-policy.md) ([index](docs/adr/index.md)).
+2. **ADRs** for real decisions — [ADR-001](docs/adr/001-cost-safety-policy.md)–[ADR-006](docs/adr/006-dagster-orchestration.md) ([index](docs/adr/index.md)).
 3. **Cost safety** — CI never applies Terraform, never calls paid APIs, never runs GPU inference. Emulators only (DuckDB, LocalStack, moto).
 4. **Phase discipline** — one phase at a time; each ends with `docs/phases/PHASE_NN_COMPLETION.md`.
 5. **Local-first** — `docker compose up` / `make demo` works without cloud credentials.
@@ -163,9 +165,9 @@ PRISM owns **9100–9199** (avoids Argus / Vulcan on shared laptops).
 ## Docs
 
 - [ARCHITECTURE.md](ARCHITECTURE.md) — full system diagram, layers, golden path
-- [ADRs](docs/adr/index.md) (001–005)
+- [ADRs](docs/adr/index.md) (001–006)
 - [Demo script](docs/DEMO_SCRIPT.md) (Phase 11)
 - [Runbooks](docs/runbooks/README.md) · [Security reviews](docs/security/iam-least-privilege-audit.md)
-- [Phase completions](docs/phases/README.md) (00–13)
+- [Phase completions](docs/phases/README.md) (00–17)
 - [Release plan](docs/RELEASE_PLAN.md) · [Packaging plan](docs/PACKAGING_PLAN.md) · [Changelog](CHANGELOG.md)
 - [LICENSE](LICENSE) (Apache-2.0)

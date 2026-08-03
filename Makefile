@@ -6,7 +6,8 @@
 	lakehouse-run lakehouse-run-live dbt-build uc-validate \
 	phase1-check phase2-check phase3-check phase4-check phase5-check \
 	phase6-check phase7-check phase8-check phase9-check phase10-check \
-	phase11-check phase12-check phase13-check phase14-check phase16-check cockpit-build demo e2e
+	phase11-check phase12-check phase13-check phase14-check phase16-check \
+	phase17-check cockpit-build demo e2e
 
 CHECKOV_VERSION := $(shell tr -d '[:space:]' < infra/terraform/CHECKOV_VERSION)
 
@@ -42,6 +43,7 @@ help:
 	@echo "  make phase13-check      - lint + unit tests (two-layer validation hardening)"
 	@echo "  make phase14-check      - lint + unit tests (per-source circuit breaker)"
 	@echo "  make phase16-check      - lint + unit tests (drift-monitor, honest baseline)"
+	@echo "  make phase17-check      - lint + unit tests (Dagster orchestration)"
 
 setup:
 	@echo "Installing dev/test deps (mirrors CI's test job exactly — see requirements-dev.txt)"
@@ -55,6 +57,7 @@ setup:
 	python -m pip install -e incident-engine
 	python -m pip install -e drift-monitor
 	python -m pip install -e lakehouse
+	python -m pip install -e orchestration
 	python -m pip install -e cv-service
 	python -m pip install -e activation-gateway
 	python -m pip install -e control-plane
@@ -184,3 +187,5 @@ phase13-check: lint test
 phase14-check: lint test
 
 phase16-check: lint test
+
+phase17-check: lint test

@@ -30,3 +30,4 @@ django-q2>=1.6
 dj-database-url>=2.1
 psycopg[binary]>=3.1
 pytest-django
+dagster>=1.8

@@ -14,16 +14,16 @@ import httpx
 import pytest
 import uvicorn
 import yaml
+
 from prism_drift_monitor.api import create_app as create_drift_app
 from prism_drift_monitor.config import DriftConfig
 from prism_incident_engine.api import create_app as create_incident_app
 from prism_incident_engine.config import IncidentConfig
 from prism_incident_engine.trip_policies import TripPolicies
-from prism_scenario_engine.api import create_app as create_scenario_app
-from prism_scenario_engine.config import ScenarioConfig
-
 from prism_ingestion.config import IngestConfig
 from prism_ingestion.pipeline import IngestPipeline
+from prism_scenario_engine.api import create_app as create_scenario_app
+from prism_scenario_engine.config import ScenarioConfig
 
 
 def _free_port() -> int:

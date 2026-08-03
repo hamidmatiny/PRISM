@@ -4,6 +4,13 @@ All notable changes to PRISM are documented here.
 
 ## [Unreleased]
 
+### Phase 17 — Dagster orchestration
+
+- `orchestration/` — Dagster assets for lakehouse medallion, drift-monitor status, optional drift→scenario reseed
+- [ADR-006](docs/adr/006-dagster-orchestration.md) — asset-shaped graph justification
+- `PRISM_DAGSTER_DRIFT_RESEED` flag: off = honest no-op; on + drift = scenario-engine reset with `drift_signature` weights
+- Optional Compose profile `dagster` (UI `:9112`)
+
 ### Phase 16 — Drift detection with honest baseline gating
 
 - `drift-monitor/` on `:9109` — KS test on numeric telemetry features, centroid distance + KS-on-norms on a real CV finding feature vector (honestly labeled — PRISM's cv-service has no deep embedding head, see PHASE_16_COMPLETION.md)

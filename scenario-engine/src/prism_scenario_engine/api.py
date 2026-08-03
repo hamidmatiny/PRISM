@@ -11,7 +11,7 @@ from pydantic import BaseModel, Field
 from prism_scenario_engine import __version__
 from prism_scenario_engine.config import ScenarioConfig
 from prism_scenario_engine.journal import ScenarioJournal
-from prism_scenario_engine.outcomes import load_weights
+from prism_scenario_engine.outcomes import load_weights, normalize_weights
 from prism_scenario_engine.sampler import ScenarioSampler
 
 
@@ -21,6 +21,13 @@ class ResetRequest(BaseModel):
         default=None,
         description="Defaults to scn_{seed}_{unix_ts} so a fresh run never clobbers a prior "
         "run's audit journal for the same seed.",
+    )
+    weights: dict[str, float] | None = Field(
+        default=None,
+        description=(
+            "Optional per-run outcome weights (Phase 17 drift-reseed). When omitted, "
+            "the process-default weights stay in force. Values are normalized to sum 1.0."
+        ),
     )
 
 
@@ -43,6 +50,7 @@ def create_app(config: ScenarioConfig | None = None) -> FastAPI:
     )
     app.state.sampler = sampler
     app.state.journal = journal
+    app.state.run_weights = weights
 
     @app.get("/health")
     def health() -> dict[str, Any]:
@@ -83,7 +91,7 @@ def create_app(config: ScenarioConfig | None = None) -> FastAPI:
             "tick": live.tick,
             "stalled_assets": [aid for aid, flag in stalled.items() if flag],
             "journal_path": str(app.state.journal.path),
-            "weights": weights,
+            "weights": app.state.run_weights,
         }
 
     @app.post("/v1/reset")
@@ -97,20 +105,23 @@ def create_app(config: ScenarioConfig | None = None) -> FastAPI:
         """
         new_scenario_id = body.scenario_id or f"scn_{body.seed}_{int(time.time())}"
         new_journal = ScenarioJournal(cfg.journal_dir, new_scenario_id)
+        run_weights = normalize_weights(body.weights) if body.weights is not None else weights
         new_sampler = ScenarioSampler(
             seed=body.seed,
             scenario_id=new_scenario_id,
             asset_ids=cfg.asset_ids,
             journal=new_journal,
-            weights=weights,
+            weights=run_weights,
         )
         app.state.sampler = new_sampler
         app.state.journal = new_journal
+        app.state.run_weights = run_weights
         return {
             "seed": body.seed,
             "scenario_id": new_scenario_id,
             "tick": 0,
             "journal_path": str(new_journal.path),
+            "weights": run_weights,
         }
 
     return app
