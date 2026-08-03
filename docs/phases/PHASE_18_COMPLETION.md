@@ -170,7 +170,7 @@ done
 
 ## CI
 
-_(placeholder — replaced by `docs(phase-18): link the concluded green CI run` once Actions is confirmed green)_
+Final concluded, green run on `a070b6c`: [CI run 30844247827](https://github.com/hamidmatiny/PRISM/actions/runs/30844247827) — Lint, Unit tests (including `opa test` 18/18), Cockpit typecheck/build, both Terraform matrix legs, the AWS terraform plan artifact, and the live Golden-path e2e (which built `opa` + rebuilt `incident-engine` for real) all passed. 5m 22s total.
 
 ## Stop
 
