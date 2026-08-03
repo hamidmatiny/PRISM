@@ -113,6 +113,20 @@ even reaching CI: GitHub refused to accept a push modifying
 the user issuing a new token with that scope added; no code change was
 needed, this was a push-permission issue only.
 
+## Correction (found during the user's own real-machine test run)
+
+The first version of this doc's "Verify it yourself" section claimed
+`make demo` runs ingestion in scenario mode and a breaker would trip within
+15-20 seconds of natural traffic. That was wrong, and wasn't caught until
+the user actually ran it: `docker-compose.demo.yml` sets
+`PRISM_FAILURE_RATE=0` for ingestion specifically so the demo's golden path
+(approve -> gold) stays deterministic. `make demo` never was going to trip a
+breaker on its own -- the user's real run confirmed this directly (30+
+`ingestion_accepted` observations, zero `ingestion_quarantined`, over about
+90 seconds). Their manual `POST /v1/observations` workaround is what
+actually proved the mechanism, and is now Option A below. Corrected below
+and in the instructions given directly to the user.
+
 ## Verify it yourself
 
 ```bash
@@ -132,10 +146,33 @@ make demo
 curl -s http://127.0.0.1:9108/health | python3 -m json.tool
 # expect assets_tracked / open_breakers / policies in the response
 
-# Drive real scenario traffic long enough to trip a breaker, then watch it:
-docker compose exec ingestion sh -c 'true'  # sanity: ingestion is already running in scenario mode via make demo
-watch -n1 'curl -s http://127.0.0.1:9108/breakers | python3 -m json.tool'
-# after ~15-20s you should see at least one asset flip to "open" while others stay "closed"
+# IMPORTANT: docker-compose.demo.yml sets PRISM_FAILURE_RATE=0 for ingestion
+# specifically so the demo's golden path (approve -> gold) stays deterministic.
+# `make demo` will NOT trip a breaker on its own -- there is no corruption for
+# it to react to. An earlier draft of this doc said otherwise; that was wrong,
+# caught only after a real run showed 30+ "ingestion_accepted" observations and
+# zero trips. Two correct ways to actually see a trip, both real, not mocked:
+
+# Option A -- force it via the API directly against the demo stack (fastest,
+# and exactly what proves the mechanism independent of ingestion's own logic):
+for i in 1 2 3 4 5; do
+  curl -s -X POST http://127.0.0.1:9108/v1/observations \
+    -H 'content-type: application/json' \
+    -d '{"asset_id": "PRISM-AST-002", "kind": "ingestion_quarantined"}' > /dev/null
+done
+curl -s http://127.0.0.1:9108/breakers/PRISM-AST-002 | python3 -m json.tool
+# expect "state": "open", a real quarantine_rate and incident_id; the other two
+# assets' breakers are untouched -- check with:
+curl -s http://127.0.0.1:9108/breakers | python3 -m json.tool
+
+# Option B -- reproduce the actual seed-42 scenario-engine live proof from this
+# doc, with real ingestion-generated corruption (recreates the ingestion container
+# with the env override, same pattern documented in PHASE_12_COMPLETION.md):
+PRISM_SOURCE_MODE=scenario PRISM_FAILURE_RATE=0.05 docker compose up -d --build scenario-engine ingestion
+# poll during/after (macOS has no `watch` by default -- this loop works everywhere):
+for i in $(seq 1 15); do curl -s http://127.0.0.1:9108/breakers | python3 -m json.tool; sleep 2; done
+# to go back to the deterministic demo mode afterward:
+docker compose up -d --build ingestion
 
 curl -s http://127.0.0.1:9108/incidents | python3 -m json.tool
 curl -s "http://127.0.0.1:9108/v1/journal?limit=30" | python3 -m json.tool
@@ -144,17 +181,12 @@ make e2e
 make down
 ```
 
-To see the forced-review behavior directly (cv-service side):
+To see the forced-review behavior directly (cv-service side), with
+`PRISM-AST-002`'s breaker open from Option A above:
 
 ```bash
-# with the demo stack up and an asset's breaker open (from the watch loop above):
-curl -s -X POST http://127.0.0.1:9108/v1/observations \
-  -H 'content-type: application/json' \
-  -d '{"asset_id": "PRISM-AST-002", "kind": "ingestion_quarantined"}'
-# repeat ~4-5x quickly to force PRISM-AST-002 open, then:
-curl -s http://127.0.0.1:9108/breakers/PRISM-AST-002 | python3 -m json.tool
-# expect "state": "open" — any subsequent cv-service finding for PRISM-AST-002 is now
-# forced to review regardless of confidence (see cv-service logs / review queue).
+# any subsequent cv-service finding for PRISM-AST-002 is now forced to review
+# regardless of confidence -- check .data/cv-review-queue/pending/ or cv-service logs.
 ```
 
 ## Paths to open if you distrust this summary
