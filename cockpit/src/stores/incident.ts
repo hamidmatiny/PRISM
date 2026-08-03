@@ -38,6 +38,12 @@ export const useIncidentStore = defineStore("incident", () => {
   function rebuild(): void {
     const fleet = useFleetStore();
     const list: IncidentEvent[] = [];
+    // Preserve scrub position across background rebuilds (Phase 15's incident-engine
+    // poll triggers this every few seconds while the Breaker Board is open -- without
+    // this, every poll snapped the cursor back to t=0 and hijacked the selected asset
+    // via IncidentScrubber's activeEvent watcher, mid-click, out from under the user.
+    const hadEvents = events.value.length > 0;
+    const prevCursor = cursorMs.value;
 
     for (const p of fleet.pending) {
       const iso = p.detected_at;
@@ -110,7 +116,10 @@ export const useIncidentStore = defineStore("incident", () => {
       return Number.isFinite(e.t);
     });
     if (events.value.length) {
-      cursorMs.value = events.value[0].t;
+      const firstT = events.value[0].t;
+      const lastT = events.value[events.value.length - 1].t;
+      const cursorStillValid = hadEvents && prevCursor >= firstT && prevCursor <= lastT;
+      cursorMs.value = cursorStillValid ? prevCursor : firstT;
     }
   }
 
