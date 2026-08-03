@@ -125,7 +125,7 @@ curl -sS http://127.0.0.1:9109/v1/status
 
 ## CI
 
-Pending — will link the concluded green run in a follow-up commit once pushed (same pattern as every prior phase).
+Final concluded, green run on `ca5574d`: [CI run 30837131476](https://github.com/hamidmatiny/PRISM/actions/runs/30837131476) — Lint, Unit tests (125 passed / 2 skipped), Cockpit typecheck/build, both Terraform matrix legs, the AWS terraform plan artifact, and the live Golden-path e2e (which built and started `drift-monitor`'s Docker image for real, as an `ingestion`/`cv-service` dependency) all passed. 4m 44s total.
 
 ## Stop
 
