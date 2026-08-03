@@ -30,6 +30,8 @@ pythonpath = [
   "contracts/cv-finding-schema/src",
   "contracts/activation-contract/src",
   "ingestion/src",
+  "scenario-engine/src",
+  "incident-engine/src",
   "lakehouse/src",
   "cv-service/src",
   "activation-gateway/src",
