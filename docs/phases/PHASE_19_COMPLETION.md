@@ -104,7 +104,7 @@ Nothing deferred within v1.2.0's own scope — this closes Phases 16–19. Futur
 
 ## CI
 
-Pending — will link the concluded green run in a follow-up commit once pushed (same pattern as every prior phase).
+[Run 30847491831](https://github.com/hamidmatiny/PRISM/actions/runs/30847491831) — commit `5932180`, **Status Success**, 5m42s, all jobs green including `Golden-path e2e (compose)` (2m16s) — the job that actually runs `test_chaos_golden_path` against a real `docker compose up` stack with a real `opa run --server` container, which the sandbox this phase was built in cannot reproduce (see the environment-limitation section above). This is the real proof for the parts that section disclosed as unverified locally.
 
 ## v1.2.0
 
