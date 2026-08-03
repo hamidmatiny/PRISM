@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+import re
 import time
 from contextlib import nullcontext
 from dataclasses import dataclass, field
@@ -15,8 +16,27 @@ from prism_ingestion.producer import StreamProducer, build_producer
 from prism_ingestion.simulator import FleetSimulator
 from prism_ingestion.sources import EventSource, LiveEventSource, ScenarioClient
 from prism_ingestion.validate import validate_event
+from prism_telemetry_schema import ASSET_ID_PATTERN
 
 logger = logging.getLogger(__name__)
+
+_ASSET_ID_RE = re.compile(ASSET_ID_PATTERN)
+
+
+def _known_asset_id(raw: Any) -> str | None:
+    """Only hand incident-engine an asset_id that actually looks like a real
+    fleet asset. On rejection, ``result.cleaned`` is the *raw, unvalidated*
+    payload -- if the corruption that caused the rejection was itself in
+    asset_id (scenario-engine's ``bad_id_pattern`` strategy, e.g.
+    ``BAD-PRISM-AST-002``), reporting that raw string creates a permanent
+    phantom breaker entry for an asset that never existed and never will
+    send a legitimate observation to heal it. Pre-existing since Phase 14's
+    incident-engine wiring -- Phase 15's Breaker Board was just the first
+    thing to make it visible.
+    """
+    if not isinstance(raw, str):
+        return None
+    return raw if _ASSET_ID_RE.fullmatch(raw) else None
 
 
 @dataclass
@@ -136,9 +156,9 @@ class IngestPipeline:
                 )
                 report_observation(
                     self.config.incident_engine_url,
-                    asset_id=result.cleaned.get("asset_id")
-                    if isinstance(result.cleaned, dict)
-                    else None,
+                    asset_id=_known_asset_id(
+                        result.cleaned.get("asset_id") if isinstance(result.cleaned, dict) else None
+                    ),
                     kind="ingestion_quarantined",
                 )
                 if span is not None:

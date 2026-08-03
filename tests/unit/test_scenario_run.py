@@ -174,3 +174,42 @@ def test_run_scenario_batch_isolated_stats_do_not_touch_main_pipeline(
 
     after = main_pipeline.stats.as_dict()
     assert before == after
+
+
+def test_corrupted_asset_id_never_creates_a_phantom_breaker(
+    tmp_path: Path, live_services: tuple[str, str]
+) -> None:
+    """Real bug found via the cockpit Breaker Board (not caught by any earlier
+    test): on rejection, ``report_observation`` used to forward whatever raw,
+    unvalidated ``asset_id`` string was in the corrupted payload -- including
+    scenario-engine's own ``bad_id_pattern`` corruption strategy, which turns
+    a real id into e.g. ``BAD-PRISM-AST-002``. incident-engine has no concept
+    of "not a real asset" and happily created a permanent breaker entry for
+    it, one that can never heal since nothing legitimate will ever report
+    under that id. Forces failure_rate=1.0 so every event is corrupted --
+    over enough ticks the uniformly-random corruption strategy pool is all
+    but guaranteed to hit ``bad_id_pattern`` at least once."""
+    scenario_url, incident_url = live_services
+    from prism_ingestion.pipeline import IngestPipeline
+
+    config = IngestConfig(
+        backend="file",
+        source_mode="live",
+        failure_rate=1.0,
+        seed=3,
+        incident_engine_url=incident_url,
+        data_root=tmp_path / "ingest-data",
+    )
+    pipeline = IngestPipeline.from_config(config)
+    for _ in range(60):
+        pipeline.process_one()
+
+    stats = pipeline.stats.as_dict()
+    assert stats["by_corruption_type"].get("malformed_identifier", 0) > 0, (
+        "test didn't actually exercise the bad_id_pattern corruption -- "
+        f"got corruption types: {stats['by_corruption_type']}"
+    )
+
+    breakers = httpx.get(f"{incident_url}/breakers", timeout=2.0).json()
+    bad_ids = [b["asset_id"] for b in breakers["breakers"] if b["asset_id"].startswith("BAD-")]
+    assert bad_ids == [], f"phantom breaker(s) created for corrupted asset_id: {bad_ids}"
