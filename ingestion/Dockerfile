@@ -1,5 +1,5 @@
 # PRISM ingestion — local-first simulator (ADR-001: no cloud credentials required)
-FROM python:3.12-slim
+FROM python:3.12-slim-bookworm
 
 WORKDIR /app
 

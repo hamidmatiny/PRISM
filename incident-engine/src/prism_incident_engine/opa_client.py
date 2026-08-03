@@ -24,7 +24,7 @@ from typing import Any
 
 import httpx
 
-log = logging.getLogger(__name__)
+logger = logging.getLogger(__name__)
 
 # Packaged next to the Python package: incident-engine/policies/rego
 _DEFAULT_POLICY_DIR = Path(__file__).resolve().parents[2] / "policies" / "rego"
@@ -118,7 +118,7 @@ class HttpPolicyEngine(PolicyEngine):
                 resp.raise_for_status()
                 result = resp.json().get("result") or {}
         except Exception as exc:  # noqa: BLE001 — honest fail-open
-            log.warning("OPA HTTP trip eval failed: %s", exc)
+            logger.warning("OPA HTTP trip eval failed: %s", exc)
             return TripDecision(
                 trip=False,
                 reason=None,
@@ -143,7 +143,7 @@ class HttpPolicyEngine(PolicyEngine):
                 resp.raise_for_status()
                 result = resp.json().get("result") or {}
         except Exception as exc:  # noqa: BLE001
-            log.warning("OPA HTTP escalation eval failed: %s", exc)
+            logger.warning("OPA HTTP escalation eval failed: %s", exc)
             return EscalationRoute(
                 channel="mock_webhook",
                 severity="info",
@@ -214,7 +214,7 @@ class EvalPolicyEngine(PolicyEngine):
         try:
             result = self._eval("data.prism.trip.decision", input_doc) or {}
         except Exception as exc:  # noqa: BLE001
-            log.warning("OPA eval trip failed: %s", exc)
+            logger.warning("OPA eval trip failed: %s", exc)
             return TripDecision(
                 trip=False,
                 reason=None,
@@ -233,7 +233,7 @@ class EvalPolicyEngine(PolicyEngine):
         try:
             result = self._eval("data.prism.escalation.route", {"reason": reason}) or {}
         except Exception as exc:  # noqa: BLE001
-            log.warning("OPA eval escalation failed: %s", exc)
+            logger.warning("OPA eval escalation failed: %s", exc)
             return EscalationRoute(
                 channel="mock_webhook",
                 severity="info",
@@ -288,5 +288,5 @@ def build_policy_engine(
     if bin_path and pdir.is_dir():
         return EvalPolicyEngine(bin_path, pdir)
 
-    log.warning("No PRISM_OPA_URL and no local opa binary/policy dir — trip decisions fail open")
+    logger.warning("No PRISM_OPA_URL and no local opa binary/policy dir — trip decisions fail open")
     return UnavailablePolicyEngine()
