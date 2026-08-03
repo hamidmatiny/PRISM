@@ -209,7 +209,7 @@ open http://127.0.0.1:9112
 
 ## CI
 
-_(placeholder — replaced by `docs(phase-17): link the concluded green CI run` once Actions is confirmed green)_
+Final concluded, green run on `2b77e72`: [CI run 30841381064](https://github.com/hamidmatiny/PRISM/actions/runs/30841381064) — Lint, Unit tests (135 passed), Cockpit typecheck/build, both Terraform matrix legs, the AWS terraform plan artifact, and the live Golden-path e2e all passed. ~5m 12s total.
 
 ## Stop
 
