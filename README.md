@@ -105,6 +105,8 @@ PRISM ingests fleet camera + sensor telemetry, runs computer-vision defect/anoma
 | 13 | Two-layer validation hardening | Complete — see [`docs/phases/PHASE_13_COMPLETION.md`](docs/phases/PHASE_13_COMPLETION.md) |
 | 14 | Per-source circuit breaker + incident-engine | Complete — see [`docs/phases/PHASE_14_COMPLETION.md`](docs/phases/PHASE_14_COMPLETION.md) |
 | 15 | Cockpit Breaker Board + scenario controls + copilot tools | Complete — see [`docs/phases/PHASE_15_COMPLETION.md`](docs/phases/PHASE_15_COMPLETION.md) |
+| 16 | Drift-monitor (honest-baseline drift detection) | Complete — see [`docs/phases/PHASE_16_COMPLETION.md`](docs/phases/PHASE_16_COMPLETION.md) |
+| 17 | Dagster orchestration (lakehouse + drift + optional reseed) | Complete — see [`docs/phases/PHASE_17_COMPLETION.md`](docs/phases/PHASE_17_COMPLETION.md) |
 
 ## Monorepo layout
 
@@ -123,11 +125,13 @@ prism/
 ├── cockpit/                    # Digital-twin UI
 ├── scenario-engine/            # Phase 12 seeded chaos source
 ├── incident-engine/            # Phase 14 per-source circuit breaker + incidents
+├── drift-monitor/              # Phase 16 honest-baseline-gated drift detection
+├── orchestration/              # Phase 17 Dagster asset graph (optional profile)
 ├── infra/terraform/aws         # AWS platform modules (validate/plan only)
 ├── infra/terraform/azure       # Azure DR warm standby (validate only)
 ├── observability/              # OTel + load tests
 ├── docs/adr/                   # ADRs
-├── docs/phases/                # PHASE_00…15_COMPLETION.md
+├── docs/phases/                # PHASE_00…17_COMPLETION.md
 ├── docker-compose.yml
 ├── Makefile
 ├── LICENSE                     # Apache-2.0

@@ -273,6 +273,37 @@ def test_phase_completion_docs_are_zero_padded_under_docs_phases() -> None:
     assert "Apache License" in (ROOT / "LICENSE").read_text(encoding="utf-8")
 
 
+def test_readme_status_table_lists_every_phase_completion_doc() -> None:
+    """README Status table must not lag shipped phases (caught Phases 16–17)."""
+    import re
+
+    readme = (ROOT / "README.md").read_text(encoding="utf-8")
+    status_match = re.search(r"## Status\n\n(.*?)(?=\n## |\Z)", readme, re.DOTALL)
+    assert status_match is not None, "README.md missing ## Status section"
+    status = status_match.group(1)
+    phases = ROOT / "docs/phases"
+    for path in sorted(phases.glob("PHASE_*_COMPLETION.md")):
+        assert path.name in status, f"README Status table missing row linking {path.name}"
+
+
+def test_readme_monorepo_tree_lists_service_dirs() -> None:
+    """ASCII tree under ## Monorepo layout must include top-level service dirs."""
+    import re
+
+    readme = (ROOT / "README.md").read_text(encoding="utf-8")
+    tree_match = re.search(r"## Monorepo layout\n\n```(.*?)```", readme, re.DOTALL)
+    assert tree_match is not None, "README.md missing Monorepo layout fenced tree"
+    tree = tree_match.group(1)
+    for name in (
+        "scenario-engine/",
+        "incident-engine/",
+        "drift-monitor/",
+        "orchestration/",
+    ):
+        assert name in tree, f"README Monorepo layout tree missing {name}"
+    assert "PHASE_00…17_COMPLETION.md" in tree or "PHASE_00...17_COMPLETION.md" in tree
+
+
 def test_adr005_earned_evidence_policy() -> None:
     text = (ROOT / "docs/adr/005-earned-evidence-policy.md").read_text(encoding="utf-8")
     assert "baseline_ready" in text
