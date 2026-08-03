@@ -69,6 +69,28 @@ await page.screenshot({
   fullPage: false,
 });
 
+// Phase 15 -- Breaker Board: room-legible per-asset circuit-breaker state.
+const breakerToggle = page.getByRole("button", { name: /breaker board/i });
+if (await breakerToggle.count()) {
+  await breakerToggle.click();
+  await page.waitForTimeout(1500);
+  await page.screenshot({
+    path: path.join(OUT, "cockpit-breaker-board.png"),
+    fullPage: false,
+  });
+}
+
+// Phase 15 -- Scenario controls: admin-triggered seeded batch through real ingestion.
+const scenarioToggle = page.getByRole("button", { name: /scenario controls/i });
+if (await scenarioToggle.count()) {
+  await scenarioToggle.click();
+  await page.waitForTimeout(500);
+  await page.screenshot({
+    path: path.join(OUT, "cockpit-scenario-controls.png"),
+    fullPage: false,
+  });
+}
+
 await writeFile(
   path.join(OUT, "README.md"),
   `# Cockpit screenshots (Phase 11)
@@ -80,6 +102,8 @@ Captured from a live local stack (\`make demo\`) on ${new Date().toISOString()}.
 | \`cockpit-fleet-twin.png\` | Digital twin fleet floor |
 | \`cockpit-asset-detail.png\` | After canvas interaction / detail context |
 | \`cockpit-ask-prism.png\` | Ask PRISM panel |
+| \`cockpit-breaker-board.png\` | Breaker Board (Phase 15) |
+| \`cockpit-scenario-controls.png\` | Scenario controls (Phase 15) |
 
 Re-capture:
 

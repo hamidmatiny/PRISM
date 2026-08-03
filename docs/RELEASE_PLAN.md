@@ -8,7 +8,7 @@ cut, not an arbitrary commit.
 | Track | Scope | Status |
 |-------|--------|--------|
 | **v1.0.0** | Phases 0–11 — data spine through golden-path demo | Tagged |
-| **v1.1.0** | Phases 12–15 — chaos/audit core (scenario-engine, two-layer validation, incident-engine, Breaker Board) | **In progress** (Phase 12+) |
+| **v1.1.0** | Phases 12–15 — chaos/audit core (scenario-engine, two-layer validation, incident-engine, Breaker Board) | Tagged |
 | **v1.2.0** | Phases 16–19 — drift-monitor, Dagster, OPA/Rego, case study | Planned |
 | **v1.x.y** | Patch / docs / CI only | As needed |
 
@@ -28,11 +28,13 @@ Full Phases 0–11 portfolio close-out. See git tag `v1.0.0` and
 | 14 | Per-asset circuit breaker + incident-engine |
 | 15 | Cockpit Breaker Board + copilot breaker/incident tools |
 
-**Checklist (open):**
+**Checklist:**
 
 - [x] Phase 12 complete under `docs/phases/PHASE_12_COMPLETION.md`
-- [ ] Phases 13–15 complete
-- [ ] Git tag `v1.1.0` + GitHub Release + GHCR republish
+- [x] Phase 13 complete under `docs/phases/PHASE_13_COMPLETION.md`
+- [x] Phase 14 complete under `docs/phases/PHASE_14_COMPLETION.md`
+- [x] Phase 15 complete under `docs/phases/PHASE_15_COMPLETION.md`
+- [x] Git tag `v1.1.0` + GitHub Release + GHCR republish
 
 ## Tagging
 

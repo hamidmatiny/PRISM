@@ -250,7 +250,7 @@ def test_runbooks_index_lists_written_runbooks() -> None:
 
 def test_phase_completion_docs_are_zero_padded_under_docs_phases() -> None:
     phases = ROOT / "docs/phases"
-    expected = [f"PHASE_{n:02d}_COMPLETION.md" for n in range(15)]
+    expected = [f"PHASE_{n:02d}_COMPLETION.md" for n in range(16)]
     present = sorted(p.name for p in phases.glob("PHASE_*_COMPLETION.md"))
     assert present == expected, f"Expected {expected}, got {present}"
     assert not list(ROOT.glob("PHASE_*_COMPLETION.md")), "phase docs must not remain at repo root"

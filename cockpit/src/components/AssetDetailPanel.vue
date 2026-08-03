@@ -3,17 +3,27 @@ import { computed } from "vue";
 import { storeToRefs } from "pinia";
 import { useFleetStore } from "@/stores/fleet";
 import { useSelectionStore } from "@/stores/selection";
+import { useIncidentEngineStore } from "@/stores/incidentEngine";
 import TelemetryChart from "./TelemetryChart.vue";
 import CvFrameOverlay from "./CvFrameOverlay.vue";
 import WorkOrderList from "./WorkOrderList.vue";
-import { healthColor } from "@/lib/health";
+import { effectiveHealth, healthColor } from "@/lib/health";
 
 const fleet = useFleetStore();
 const selection = useSelectionStore();
+const incidentEngine = useIncidentEngineStore();
 const { selectedAssetId, panelOpen } = storeToRefs(selection);
 
 const asset = computed(() =>
   selectedAssetId.value ? fleet.byId.get(selectedAssetId.value) ?? null : null,
+);
+const breaker = computed(() =>
+  selectedAssetId.value
+    ? incidentEngine.breakers.find((b) => b.asset_id === selectedAssetId.value) ?? null
+    : null,
+);
+const shownHealth = computed(() =>
+  asset.value ? effectiveHealth(asset.value.health, breaker.value?.state) : "unknown",
 );
 const orders = computed(() =>
   selectedAssetId.value ? fleet.workOrdersFor(selectedAssetId.value) : [],
@@ -48,14 +58,21 @@ function onKeydown(e: KeyboardEvent) {
       </button>
     </header>
 
-    <div class="health" :style="{ '--h': healthColor(asset.health) }">
+    <div class="health" :style="{ '--h': healthColor(shownHealth) }">
       <span class="dot" aria-hidden="true" />
       <span>
-        Health <strong class="mono">{{ asset.health }}</strong>
+        Health <strong class="mono">{{ shownHealth }}</strong>
         · {{ asset.openWorkOrders }} open WO
         · {{ asset.unreviewedFindings }} unreviewed CV
       </span>
     </div>
+    <p v-if="breaker && breaker.state !== 'closed'" class="breaker-note mono">
+      breaker: {{ breaker.state }}
+      <span v-if="breaker.trip_reason"> · {{ breaker.trip_reason }}</span>
+      <span v-if="breaker.quarantine_rate !== null">
+        · quarantine {{ (breaker.quarantine_rate * 100).toFixed(0) }}%
+      </span>
+    </p>
 
     <div class="body">
       <TelemetryChart :asset-id="asset.asset_id" />
@@ -120,6 +137,14 @@ h2 {
   border-radius: 50%;
   background: var(--h);
   box-shadow: 0 0 12px var(--h);
+}
+
+.breaker-note {
+  margin: 0;
+  padding: var(--space-2) var(--space-4);
+  border-bottom: 1px solid var(--color-border);
+  font-size: var(--text-xs);
+  color: var(--color-critical);
 }
 
 .body {

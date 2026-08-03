@@ -1,16 +1,31 @@
 <script setup lang="ts">
-import { onMounted, onUnmounted, ref, watch } from "vue";
+import { computed, onMounted, onUnmounted, ref, watch } from "vue";
 import { storeToRefs } from "pinia";
 import { useFleetStore } from "@/stores/fleet";
 import { useSelectionStore } from "@/stores/selection";
+import { useIncidentEngineStore } from "@/stores/incidentEngine";
 import { FleetScene } from "@/three/FleetScene";
+import { effectiveHealth } from "@/lib/health";
 
 const canvasRef = ref<HTMLCanvasElement | null>(null);
 const backend = ref<"webgpu" | "webgl" | "…">("…");
 const fleet = useFleetStore();
 const selection = useSelectionStore();
+const incidentEngine = useIncidentEngineStore();
 const { assets } = storeToRefs(fleet);
 const { selectedAssetId } = storeToRefs(selection);
+const { breakers } = storeToRefs(incidentEngine);
+
+// Twin render list: same assets, health folded with any live breaker state
+// (Phase 15) -- a tripped breaker reads as "critical" on the twin even if
+// work orders/findings alone would have called it "ok".
+const renderAssets = computed(() => {
+  const byAsset = new Map(breakers.value.map((b) => [b.asset_id, b.state]));
+  return assets.value.map((a) => ({
+    ...a,
+    health: effectiveHealth(a.health, byAsset.get(a.asset_id)),
+  }));
+});
 
 let scene: FleetScene | null = null;
 
@@ -18,7 +33,7 @@ onMounted(async () => {
   if (!canvasRef.value) return;
   scene = new FleetScene(canvasRef.value, (id) => selection.select(id));
   backend.value = await scene.init();
-  scene.setAssets(assets.value);
+  scene.setAssets(renderAssets.value);
   scene.highlight(selectedAssetId.value);
   scene.start();
   window.addEventListener("resize", onResize);
@@ -34,7 +49,7 @@ function onResize() {
   scene?.resize();
 }
 
-watch(assets, (list) => scene?.setAssets(list), { deep: true });
+watch(renderAssets, (list) => scene?.setAssets(list), { deep: true });
 watch(selectedAssetId, (id) => scene?.highlight(id));
 </script>
 

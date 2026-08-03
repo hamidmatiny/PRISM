@@ -104,6 +104,7 @@ PRISM ingests fleet camera + sensor telemetry, runs computer-vision defect/anoma
 | 12 | Scenario engine (chaos) | Complete — see [`docs/phases/PHASE_12_COMPLETION.md`](docs/phases/PHASE_12_COMPLETION.md) |
 | 13 | Two-layer validation hardening | Complete — see [`docs/phases/PHASE_13_COMPLETION.md`](docs/phases/PHASE_13_COMPLETION.md) |
 | 14 | Per-source circuit breaker + incident-engine | Complete — see [`docs/phases/PHASE_14_COMPLETION.md`](docs/phases/PHASE_14_COMPLETION.md) |
+| 15 | Cockpit Breaker Board + scenario controls + copilot tools | Complete — see [`docs/phases/PHASE_15_COMPLETION.md`](docs/phases/PHASE_15_COMPLETION.md) |
 
 ## Monorepo layout
 
@@ -126,7 +127,7 @@ prism/
 ├── infra/terraform/azure       # Azure DR warm standby (validate only)
 ├── observability/              # OTel + load tests
 ├── docs/adr/                   # ADRs
-├── docs/phases/                # PHASE_00…14_COMPLETION.md
+├── docs/phases/                # PHASE_00…15_COMPLETION.md
 ├── docker-compose.yml
 ├── Makefile
 ├── LICENSE                     # Apache-2.0

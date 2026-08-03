@@ -2,15 +2,26 @@
 
 from __future__ import annotations
 
+import time
 from typing import Any
 
 from fastapi import FastAPI, HTTPException
+from pydantic import BaseModel, Field
 
 from prism_scenario_engine import __version__
 from prism_scenario_engine.config import ScenarioConfig
 from prism_scenario_engine.journal import ScenarioJournal
 from prism_scenario_engine.outcomes import load_weights
 from prism_scenario_engine.sampler import ScenarioSampler
+
+
+class ResetRequest(BaseModel):
+    seed: int = Field(..., description="New RNG seed; same seed always replays identically.")
+    scenario_id: str | None = Field(
+        default=None,
+        description="Defaults to scn_{seed}_{unix_ts} so a fresh run never clobbers a prior "
+        "run's audit journal for the same seed.",
+    )
 
 
 def create_app(config: ScenarioConfig | None = None) -> FastAPI:
@@ -35,42 +46,71 @@ def create_app(config: ScenarioConfig | None = None) -> FastAPI:
 
     @app.get("/health")
     def health() -> dict[str, Any]:
+        live = app.state.sampler
         return {
             "status": "ok",
             "service": "scenario-engine",
             "version": __version__,
-            "seed": cfg.seed,
-            "scenario_id": cfg.scenario_id,
-            "tick": sampler.tick,
-            "journal_path": str(journal.path),
+            "seed": live.seed,
+            "scenario_id": app.state.sampler.scenario_id,
+            "tick": live.tick,
+            "journal_path": str(app.state.journal.path),
             "synthetic_scenario": True,
         }
 
     @app.get("/v1/next-event")
     def next_event() -> dict[str, Any]:
         """Pull one sampled decision + optional payload for ingestion."""
-        return sampler.next_event()
+        return app.state.sampler.next_event()
 
     @app.post("/v1/assets/{asset_id}/resume")
     def resume_asset(asset_id: str) -> dict[str, Any]:
-        ok = sampler.resume_asset(asset_id)
+        ok = app.state.sampler.resume_asset(asset_id)
         if not ok:
             raise HTTPException(status_code=404, detail=f"unknown asset_id: {asset_id}")
         return {"asset_id": asset_id, "stalled": False, "resumed": True}
 
     @app.get("/v1/status")
     def status() -> dict[str, Any]:
+        live = app.state.sampler
         stalled = {
             aid: state.stalled
-            for aid, state in sampler._states.items()  # noqa: SLF001
+            for aid, state in live._states.items()  # noqa: SLF001
         }
         return {
-            "scenario_id": cfg.scenario_id,
-            "seed": cfg.seed,
-            "tick": sampler.tick,
+            "scenario_id": app.state.sampler.scenario_id,
+            "seed": live.seed,
+            "tick": live.tick,
             "stalled_assets": [aid for aid, flag in stalled.items() if flag],
-            "journal_path": str(journal.path),
+            "journal_path": str(app.state.journal.path),
             "weights": weights,
+        }
+
+    @app.post("/v1/reset")
+    def reset(body: ResetRequest) -> dict[str, Any]:
+        """Start a fresh seeded run in-process (Phase 15 cockpit scenario controls).
+
+        Reconstructs the sampler against the new seed with a brand-new audit
+        journal -- the prior run's journal file is left untouched, so replaying
+        an old seed later is still byte-identical to the first time (Phase 12's
+        reproducibility guarantee is unaffected by this endpoint's existence).
+        """
+        new_scenario_id = body.scenario_id or f"scn_{body.seed}_{int(time.time())}"
+        new_journal = ScenarioJournal(cfg.journal_dir, new_scenario_id)
+        new_sampler = ScenarioSampler(
+            seed=body.seed,
+            scenario_id=new_scenario_id,
+            asset_ids=cfg.asset_ids,
+            journal=new_journal,
+            weights=weights,
+        )
+        app.state.sampler = new_sampler
+        app.state.journal = new_journal
+        return {
+            "seed": body.seed,
+            "scenario_id": new_scenario_id,
+            "tick": 0,
+            "journal_path": str(new_journal.path),
         }
 
     return app

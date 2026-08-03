@@ -38,6 +38,16 @@ export default defineConfig({
         changeOrigin: true,
         rewrite: (p) => p.replace(/^\/proxy\/copilot/, ""),
       },
+      "/proxy/incident": {
+        target: process.env.INCIDENT_ENGINE_PROXY || "http://127.0.0.1:9108",
+        changeOrigin: true,
+        rewrite: (p) => p.replace(/^\/proxy\/incident/, ""),
+      },
+      "/proxy/ingestion": {
+        target: process.env.INGESTION_PROXY || "http://127.0.0.1:9105",
+        changeOrigin: true,
+        rewrite: (p) => p.replace(/^\/proxy\/ingestion/, ""),
+      },
     },
   },
 });

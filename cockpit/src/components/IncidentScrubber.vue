@@ -107,6 +107,11 @@ function onInput(e: Event) {
   color: var(--color-accent);
 }
 
+.event[data-kind="breaker"] {
+  color: var(--color-critical);
+  font-weight: var(--weight-semibold);
+}
+
 .controls {
   display: flex;
   align-items: center;
@@ -147,5 +152,11 @@ function onInput(e: Event) {
 
 .ticks li[data-kind="telemetry"] {
   background: var(--color-accent);
+}
+
+.ticks li[data-kind="breaker"] {
+  background: var(--color-critical);
+  width: 3px;
+  height: 6px;
 }
 </style>

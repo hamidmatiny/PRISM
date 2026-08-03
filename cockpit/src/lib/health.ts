@@ -1,4 +1,4 @@
-import type { HealthLevel } from "@/api/types";
+import type { BreakerState, HealthLevel } from "@/api/types";
 
 /** Room-readable health from open work orders + unreviewed CV findings. */
 export function computeHealth(openWorkOrders: number, unreviewedFindings: number): HealthLevel {
@@ -18,6 +18,18 @@ export function healthColor(level: HealthLevel): string {
     default:
       return "#6b7c8f";
   }
+}
+
+/**
+ * Fold a live circuit-breaker state into the asset's rendered health level
+ * (Phase 15) -- an open breaker is a "degraded" signal everywhere in the
+ * cockpit (twin glow, detail panel), not just on the Breaker Board itself.
+ * Never downgrades an already-worse level computed from WOs/findings.
+ */
+export function effectiveHealth(base: HealthLevel, breaker: BreakerState | undefined): HealthLevel {
+  if (breaker === "open") return "critical";
+  if (breaker === "half_open" && base === "ok") return "warn";
+  return base;
 }
 
 /** Deterministic grid position from asset_id for the twin floor plan. */

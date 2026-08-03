@@ -2,6 +2,7 @@ import { defineStore } from "pinia";
 import { computed, ref, watch } from "vue";
 import type { IncidentEvent } from "@/api/types";
 import { useFleetStore } from "./fleet";
+import { useIncidentEngineStore } from "./incidentEngine";
 
 /**
  * Incident scrubber timeline built from real control-plane / activation data:
@@ -70,6 +71,21 @@ export const useIncidentStore = defineStore("incident", () => {
         payload: { ...w },
       });
     }
+    const ieStore = useIncidentEngineStore();
+    for (const j of ieStore.journal) {
+      if (j.event !== "breaker_transition" && j.event !== "incident_opened") continue;
+      const iso = j.at;
+      const state = typeof j.detail.state === "string" ? j.detail.state : j.event;
+      list.push({
+        id: `brk-${j.asset_id}-${iso}-${j.event}`,
+        t: Date.parse(iso),
+        kind: "breaker",
+        asset_id: j.asset_id,
+        label: `Breaker ${state}`,
+        payload: { ...j.detail, event: j.event },
+      });
+    }
+
     // Telemetry anchors — place at mid-window so scrubber shows sensor context.
     if (list.length && fleet.telemetryRows.length) {
       const mid = list.reduce((s, e) => s + e.t, 0) / list.length;
@@ -137,6 +153,11 @@ export const useIncidentStore = defineStore("incident", () => {
   const fleet = useFleetStore();
   watch(
     () => fleet.lastRefresh,
+    () => rebuild(),
+  );
+  const ieStoreForWatch = useIncidentEngineStore();
+  watch(
+    () => ieStoreForWatch.lastRefresh,
     () => rebuild(),
   );
 

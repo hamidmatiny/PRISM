@@ -128,3 +128,60 @@ def test_ingestion_scenario_source_mode(tmp_path: Path) -> None:
     sample = json.loads(bronze_files[0].read_text(encoding="utf-8"))
     assert sample.get("synthetic_scenario") is True
     assert sample.get("scenario_id") == "scn_99"
+
+
+def test_reset_starts_fresh_seeded_run_without_disturbing_prior_journal(tmp_path: Path) -> None:
+    """Phase 15 cockpit scenario controls: POST /v1/reset must (a) actually change
+    the RNG sequence going forward, and (b) never touch the journal file from
+    whatever run was active before the reset -- otherwise replaying an earlier
+    seed later would no longer be byte-identical, breaking Phase 12's guarantee."""
+    cfg = ScenarioConfig(
+        data_root=tmp_path,
+        seed=1,
+        scenario_id="scn_1",
+        asset_ids=("PRISM-AST-001",),
+    )
+    client = TestClient(create_app(cfg))
+
+    # Drive a few ticks under the original seed=1 run and capture its journal content.
+    for _ in range(5):
+        client.get("/v1/next-event")
+    original_journal_path = cfg.journal_dir / "scn_1.jsonl"
+    original_content = original_journal_path.read_text(encoding="utf-8")
+    assert original_content
+
+    # Reset to a different seed.
+    resp = client.post("/v1/reset", json={"seed": 999})
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["seed"] == 999
+    assert body["tick"] == 0
+    assert body["scenario_id"].startswith("scn_999_")
+
+    # /health and /v1/status now report the NEW seed/scenario_id, not the old one.
+    health = client.get("/health").json()
+    assert health["seed"] == 999
+    assert health["scenario_id"] == body["scenario_id"]
+    assert health["tick"] == 0
+
+    # The original run's journal file is untouched by the reset.
+    assert original_journal_path.read_text(encoding="utf-8") == original_content
+
+    # New ticks now land in the NEW journal file, not the old one.
+    for _ in range(3):
+        client.get("/v1/next-event")
+    new_journal_path = cfg.journal_dir / f"{body['scenario_id']}.jsonl"
+    assert new_journal_path.exists()
+    assert original_journal_path.read_text(encoding="utf-8") == original_content
+    status = client.get("/v1/status").json()
+    assert status["seed"] == 999
+    assert status["tick"] == 3
+
+
+def test_reset_with_explicit_scenario_id_is_honored(tmp_path: Path) -> None:
+    cfg = ScenarioConfig(data_root=tmp_path, seed=1, scenario_id="scn_1")
+    client = TestClient(create_app(cfg))
+    resp = client.post("/v1/reset", json={"seed": 42, "scenario_id": "my-custom-run"})
+    assert resp.status_code == 200
+    assert resp.json()["scenario_id"] == "my-custom-run"
+    assert (cfg.journal_dir / "my-custom-run.jsonl").exists()

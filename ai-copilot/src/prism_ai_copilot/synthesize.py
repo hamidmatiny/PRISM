@@ -37,6 +37,20 @@ def _wants_work_orders(q: str) -> bool:
     return bool(re.search(r"\b(work[\s-]?order|wo\b|maintenance|ticket)\b", q, re.I))
 
 
+def _wants_breakers(q: str) -> bool:
+    return bool(
+        re.search(
+            r"\b(breaker|circuit|degraded|tripped?|trip|quarantine[\s-]?rate|health of)\b",
+            q,
+            re.I,
+        )
+    )
+
+
+def _wants_incidents(q: str) -> bool:
+    return bool(re.search(r"\b(incident|acknowledge[ds]?|resolve[ds]?|escalat\w*)\b", q, re.I))
+
+
 def select_tools(question: str) -> list[str]:
     """Keyword router — explicit, testable, no LLM."""
     q = question.lower()
@@ -47,9 +61,19 @@ def select_tools(question: str) -> list[str]:
         tools.append("query_cv_findings")
     if _wants_work_orders(q):
         tools.append("query_work_orders")
-    # Broad fleet questions → all three tools.
+    if _wants_breakers(q):
+        tools.append("query_breakers")
+    if _wants_incidents(q):
+        tools.append("query_incidents")
+    # Broad fleet questions → every grounded tool Ask PRISM has.
     if not tools or re.search(r"\b(fleet|overview|status|summary|how many)\b", q, re.I):
-        tools = ["query_warehouse", "query_cv_findings", "query_work_orders"]
+        tools = [
+            "query_warehouse",
+            "query_cv_findings",
+            "query_work_orders",
+            "query_breakers",
+            "query_incidents",
+        ]
     # de-dupe preserve order
     seen: set[str] = set()
     out: list[str] = []
@@ -74,6 +98,8 @@ def synthesize_answer(
     warehouse: dict[str, Any] | None,
     cv: dict[str, Any] | None,
     work_orders: dict[str, Any] | None,
+    breakers: dict[str, Any] | None = None,
+    incidents: dict[str, Any] | None = None,
     evidence: list[EvidenceItem],
 ) -> str:
     """Build a grounded answer. Ungrounded claims are refused, not invented."""
@@ -185,10 +211,79 @@ def synthesize_answer(
                     f"status={o0.get('status')}."
                 )
 
+    if breakers is not None:
+        blist = breakers.get("breakers") or []
+        if asset:
+            match = next((b for b in blist if str(b.get("asset_id", "")).upper() == asset), None)
+            if match:
+                state = match.get("state", "unknown")
+                bits = [f"{asset} circuit breaker is {state}"]
+                if match.get("trip_reason"):
+                    bits.append(f"trip_reason={match['trip_reason']}")
+                if match.get("quarantine_rate") is not None:
+                    bits.append(f"quarantine_rate={format_number(match['quarantine_rate'])}")
+                if match.get("incident_id"):
+                    bits.append(f"incident_id={match['incident_id']}")
+                parts.append(", ".join(bits) + ".")
+            else:
+                parts.append(
+                    f"No breaker record for {asset} in this turn's incident-engine "
+                    "response — either it hasn't reported an observation yet, or the "
+                    "asset id doesn't match."
+                )
+        else:
+            open_n = int(breakers.get("open_count", 0))
+            half_n = int(breakers.get("half_open_count", 0))
+            closed_n = int(breakers.get("closed_count", 0))
+            parts.append(
+                f"Circuit breakers: {format_number(open_n)} open, "
+                f"{format_number(half_n)} half-open, {format_number(closed_n)} closed."
+            )
+            if open_n:
+                open_assets = [b.get("asset_id") for b in blist if b.get("state") == "open"]
+                parts.append(
+                    "Open (degraded, forced to human review): "
+                    + ", ".join(str(a) for a in open_assets if a)
+                    + "."
+                )
+
+    if incidents is not None:
+        ilist = incidents.get("incidents") or []
+        if asset:
+            asset_incidents = [i for i in ilist if str(i.get("asset_id", "")).upper() == asset]
+            add_number(
+                evidence, "synthesize", f"incidents:{asset}:count", float(len(asset_incidents))
+            )
+            parts.append(
+                f"Incidents for {asset}: {format_number(len(asset_incidents))} "
+                f"(fleet total in this query={format_number(len(ilist))})."
+            )
+            if asset_incidents:
+                top = asset_incidents[0]
+                trip_n = format_number(top.get("trip_count", 0))
+                parts.append(
+                    f"Most recent: {top.get('incident_id')} status={top.get('status')} "
+                    f"trigger={top.get('trigger')} trip_count={trip_n}."
+                )
+        else:
+            open_incidents = [i for i in ilist if i.get("status") == "open"]
+            add_number(evidence, "synthesize", "incidents:open:count", float(len(open_incidents)))
+            parts.append(
+                f"Incidents: {format_number(len(ilist))} returned for this query, "
+                f"{format_number(len(open_incidents))} currently open."
+            )
+            if open_incidents:
+                top = open_incidents[0]
+                parts.append(
+                    f"Example open incident {top.get('incident_id')} on {top.get('asset_id')} "
+                    f"trigger={top.get('trigger')}."
+                )
+
     if not parts:
         answer = (
             "I could not ground an answer in tool results for this question. "
-            "Ask about telemetry/ping_count, CV findings, or work orders."
+            "Ask about telemetry/ping_count, CV findings, work orders, circuit "
+            "breakers, or incidents."
         )
     else:
         answer = " ".join(parts)

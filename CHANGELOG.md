@@ -4,6 +4,28 @@ All notable changes to PRISM are documented here.
 
 ## [Unreleased]
 
+## [1.1.0] — 2026-08-03 — Chaos/audit core (Phases 12–15)
+
+See [docs/RELEASE_PLAN.md](docs/RELEASE_PLAN.md).
+
+### Phase 15 — Cockpit Breaker Board + scenario controls + copilot tools
+
+- `scenario-engine`: `POST /v1/reset` — in-process seed change, no container restart
+- `ingestion`: `POST /v1/scenario-runs` — admin-triggered, bounded, real batch through an isolated pipeline instance
+- `ai-copilot`: `query_breakers` / `query_incidents` grounded tools (ADR-004)
+- `cockpit`: `BreakerBoard.vue`, `ScenarioControls.vue`; breaker state folded into the twin's health-glow material and the asset detail panel; incident-replay scrubber reused (new `"breaker"` event kind), not duplicated
+
+### Phase 14 — Per-source circuit breaker + incident-engine
+
+- `incident-engine/` on `:9108` — per-asset closed → open → half-open FSM, declarative trip policies (`quarantine_rate`, `consecutive_qa_failures`, dormant `drifted_features`)
+- `ingestion`/`cv-service` report observations best-effort, fail-open; a tripped breaker forces all of that asset's cv-service findings to human review
+- `GET /breakers`, `GET /incidents`, `POST /incidents/{id}/acknowledge|resolve`, `GET /v1/journal`, mock webhook + inbox
+
+### Phase 13 — Two-layer Pydantic → Pandera validation hardening
+
+- Pydantic triage (per-event) followed by a Pandera batch gate before bronze promotion
+- `pyproject.toml` pytest `pythonpath` fallback fixed to cover every service's `src/`
+
 ### Phase 12 — Scenario engine (v1.1.0 track)
 
 - `scenario-engine/` on `:9107` — seeded outcomes, append-only audit journal

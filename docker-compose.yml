@@ -300,6 +300,7 @@ services:
       PRISM_AI_COPILOT_PORT: "9104"
       PRISM_ACTIVATION_URL: http://activation-gateway:9103
       PRISM_CONTROL_PLANE_URL: http://control-plane:9100
+      PRISM_INCIDENT_ENGINE_URL: http://incident-engine:9108
       PRISM_DATA_ROOT: /data
       PRISM_CV_FINDINGS_GOLD_DIR: /data/lakehouse/gold/cv_findings
       PRISM_CORS_ORIGINS: http://localhost:9101,http://127.0.0.1:9101
@@ -315,6 +316,8 @@ services:
         condition: service_healthy
       activation-gateway:
         condition: service_healthy
+      incident-engine:
+        condition: service_started
     healthcheck:
       test:
         [
@@ -341,6 +344,8 @@ services:
       CONTROL_PLANE_PROXY: http://control-plane:9100
       ACTIVATION_PROXY: http://activation-gateway:9103
       COPILOT_PROXY: http://ai-copilot:9104
+      INCIDENT_ENGINE_PROXY: http://incident-engine:9108
+      INGESTION_PROXY: http://ingestion:9105
     volumes:
       - ./cockpit:/app
       - cockpit_node_modules:/app/node_modules
@@ -350,6 +355,10 @@ services:
       activation-gateway:
         condition: service_healthy
       ai-copilot:
+        condition: service_healthy
+      incident-engine:
+        condition: service_started
+      ingestion:
         condition: service_healthy
 
   control-plane-worker:

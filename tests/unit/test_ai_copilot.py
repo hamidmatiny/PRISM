@@ -185,6 +185,103 @@ def activation_url(tmp_path: Path):
     yield url
 
 
+@pytest.fixture()
+def incident_engine_url(tmp_path: Path):
+    """Real incident-engine process (Phase 14/15 pattern)."""
+    import socket
+    import threading
+
+    from prism_incident_engine.api import create_app as create_incident_app
+    from prism_incident_engine.config import IncidentConfig
+
+    def _free_port() -> int:
+        with socket.socket() as s:
+            s.bind(("127.0.0.1", 0))
+            return int(s.getsockname()[1])
+
+    port = _free_port()
+    cfg = IncidentConfig(port=port, data_root=tmp_path / "incident-data")
+    threading.Thread(
+        target=uvicorn.Server(
+            uvicorn.Config(
+                create_incident_app(cfg), host="127.0.0.1", port=port, log_level="warning"
+            )
+        ).run,
+        daemon=True,
+    ).start()
+    url = f"http://127.0.0.1:{port}"
+    with httpx.Client() as client:
+        for _ in range(100):
+            try:
+                if client.get(f"{url}/health", timeout=0.2).status_code == 200:
+                    break
+            except Exception:  # noqa: BLE001
+                pass
+        else:
+            raise RuntimeError("incident-engine failed to start")
+    yield url
+
+
+def test_ask_breakers_and_incidents_grounded_against_real_incident_engine(
+    incident_engine_url, tmp_path
+):
+    """Phase 15 — query_breakers / query_incidents, same non-fabrication contract."""
+    # Trip PRISM-AST-001's breaker for real, over real HTTP, before asking about it.
+    with httpx.Client() as client:
+        for _ in range(5):
+            client.post(
+                f"{incident_engine_url}/v1/observations",
+                json={"asset_id": "PRISM-AST-001", "kind": "ingestion_quarantined"},
+                timeout=5.0,
+            )
+        client.post(
+            f"{incident_engine_url}/v1/observations",
+            json={"asset_id": "PRISM-AST-002", "kind": "ingestion_accepted"},
+            timeout=5.0,
+        )
+
+    gold = tmp_path / "gold"
+    gold.mkdir()
+    cfg = CopilotConfig(
+        activation_url="http://127.0.0.1:9",
+        control_plane_url="http://127.0.0.1:9",
+        incident_engine_url=incident_engine_url,
+        control_plane_token="",
+        cv_findings_gold_dir=gold,
+    )
+
+    result = run_ask("Are any circuit breakers open right now?", config=cfg)
+    assert result.error is None, result
+    assert result.grounded is True
+    assert any(c.get("tool") == "query_breakers" and c.get("ok") for c in result.tool_calls)
+    evidence = [
+        EvidenceItem(
+            tool=e["tool"], kind=e["kind"], key=e["key"], value=e["value"], value_str=e["value_str"]
+        )
+        for e in result.evidence
+    ]
+    assert_answer_grounded(result.answer, evidence)
+    assert "PRISM-AST-001" in result.answer
+    assert "open" in result.answer.lower()
+
+    result2 = run_ask("What incidents are open for PRISM-AST-001?", config=cfg)
+    assert result2.error is None, result2
+    assert any(c.get("tool") == "query_incidents" and c.get("ok") for c in result2.tool_calls)
+    evidence2 = [
+        EvidenceItem(
+            tool=e["tool"], kind=e["kind"], key=e["key"], value=e["value"], value_str=e["value_str"]
+        )
+        for e in result2.evidence
+    ]
+    assert_answer_grounded(result2.answer, evidence2)
+    assert "PRISM-AST-001" in result2.answer
+
+
+def test_select_tools_routes_breaker_and_incident_keywords() -> None:
+    assert "query_breakers" in select_tools("is any asset degraded or breaker open?")
+    assert "query_incidents" in select_tools("any incidents I need to acknowledge?")
+
+
 def test_ask_warehouse_grounded_against_real_activation_gateway(activation_url, tmp_path):
     """Continuity: warehouse tool hits a real activation-gateway query contract."""
     gold = tmp_path / "gold"

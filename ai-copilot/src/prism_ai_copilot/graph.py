@@ -11,6 +11,7 @@ from prism_ai_copilot.config import CopilotConfig
 from prism_ai_copilot.non_fabrication import EvidenceItem, add_id
 from prism_ai_copilot.synthesize import _asset_filter, select_tools, synthesize_answer
 from prism_ai_copilot.tools.cv_findings import query_cv_findings
+from prism_ai_copilot.tools.incidents import query_breakers, query_incidents
 from prism_ai_copilot.tools.warehouse import query_warehouse
 from prism_ai_copilot.tools.work_orders import query_work_orders
 from prism_ai_copilot.validation import sanitize_answer, validate_question
@@ -57,6 +58,8 @@ def run_ask(
     warehouse: dict[str, Any] | None = None
     cv: dict[str, Any] | None = None
     work_orders: dict[str, Any] | None = None
+    breakers: dict[str, Any] | None = None
+    incidents: dict[str, Any] | None = None
 
     own = client is None
     http = client or httpx.Client()
@@ -109,6 +112,34 @@ def run_ask(
                             "open_count": work_orders["open_count"],
                         }
                     )
+                elif name == "query_breakers":
+                    breakers = query_breakers(
+                        incident_engine_url=config.incident_engine_url,
+                        evidence=evidence,
+                        asset_id=asked_asset,
+                        client=http,
+                    )
+                    tool_calls.append(
+                        {
+                            "tool": name,
+                            "ok": True,
+                            "count": breakers["count"],
+                            "open_count": breakers["open_count"],
+                        }
+                    )
+                elif name == "query_incidents":
+                    incidents = query_incidents(
+                        incident_engine_url=config.incident_engine_url,
+                        evidence=evidence,
+                        client=http,
+                    )
+                    tool_calls.append(
+                        {
+                            "tool": name,
+                            "ok": True,
+                            "count": incidents["count"],
+                        }
+                    )
             except Exception as exc:  # noqa: BLE001 — surface tool failure honestly
                 tool_calls.append({"tool": name, "ok": False, "error": str(exc)})
     finally:
@@ -135,6 +166,8 @@ def run_ask(
             warehouse=warehouse,
             cv=cv,
             work_orders=work_orders,
+            breakers=breakers,
+            incidents=incidents,
             evidence=evidence,
         )
     except AssertionError as exc:

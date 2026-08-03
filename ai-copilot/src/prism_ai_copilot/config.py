@@ -12,6 +12,7 @@ class CopilotConfig:
     port: int = 9104
     activation_url: str = "http://127.0.0.1:9103"
     control_plane_url: str = "http://127.0.0.1:9100"
+    incident_engine_url: str = "http://127.0.0.1:9108"
     control_plane_token: str = ""
     cv_findings_gold_dir: Path = Path(".data/lakehouse/gold/cv_findings")
     cors_origins: tuple[str, ...] = (
@@ -43,6 +44,9 @@ class CopilotConfig:
             ),
             control_plane_url=os.environ.get(
                 "PRISM_CONTROL_PLANE_URL", "http://127.0.0.1:9100"
+            ).rstrip("/"),
+            incident_engine_url=os.environ.get(
+                "PRISM_INCIDENT_ENGINE_URL", "http://127.0.0.1:9108"
             ).rstrip("/"),
             control_plane_token=os.environ.get("PRISM_CONTROL_PLANE_TOKEN", "").strip(),
             cv_findings_gold_dir=gold,

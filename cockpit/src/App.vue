@@ -4,13 +4,17 @@ import TwinViewport from "@/components/TwinViewport.vue";
 import AssetDetailPanel from "@/components/AssetDetailPanel.vue";
 import IncidentScrubber from "@/components/IncidentScrubber.vue";
 import AskPrism from "@/components/AskPrism.vue";
+import BreakerBoard from "@/components/BreakerBoard.vue";
+import ScenarioControls from "@/components/ScenarioControls.vue";
 import { setControlPlaneToken } from "@/api/controlPlane";
 import { normalizeApiToken } from "@/lib/token";
 import { useFleetStore } from "@/stores/fleet";
 import { useIncidentStore } from "@/stores/incident";
+import { useIncidentEngineStore } from "@/stores/incidentEngine";
 
 const fleet = useFleetStore();
 const incident = useIncidentStore();
+const incidentEngine = useIncidentEngineStore();
 const tokenInput = ref(localStorage.getItem("prism_cp_token") || "");
 const showToken = ref(!tokenInput.value);
 
@@ -27,7 +31,7 @@ function saveToken() {
 }
 
 async function refresh() {
-  await fleet.refresh();
+  await Promise.all([fleet.refresh(), incidentEngine.refresh()]);
   incident.rebuild();
 }
 
@@ -80,6 +84,8 @@ onMounted(() => {
 
     <main class="main">
       <TwinViewport />
+      <BreakerBoard />
+      <ScenarioControls />
       <AssetDetailPanel />
       <AskPrism />
     </main>
