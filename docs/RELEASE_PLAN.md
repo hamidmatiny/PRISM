@@ -9,7 +9,7 @@ cut, not an arbitrary commit.
 |-------|--------|--------|
 | **v1.0.0** | Phases 0–11 — data spine through golden-path demo | Tagged |
 | **v1.1.0** | Phases 12–15 — chaos/audit core (scenario-engine, two-layer validation, incident-engine, Breaker Board) | Tagged |
-| **v1.2.0** | Phases 16–19 — drift-monitor, Dagster, OPA/Rego, case study | In progress |
+| **v1.2.0** | Phases 16–19 — drift-monitor, Dagster, OPA/Rego, case study | Tagged |
 | **v1.x.y** | Patch / docs / CI only | As needed |
 
 Phase completion records: [`docs/phases/`](./phases/) (`PHASE_00` …).
@@ -51,7 +51,9 @@ Full Phases 0–11 portfolio close-out. See git tag `v1.0.0` and
 - [x] Phase 17 complete under `docs/phases/PHASE_17_COMPLETION.md`
 - [x] Phase 18 complete under `docs/phases/PHASE_18_COMPLETION.md`
 - [x] Phase 19 complete under `docs/phases/PHASE_19_COMPLETION.md`
-- [ ] Git tag `v1.2.0` + GitHub Release + GHCR republish
+- [x] Git tag `v1.2.0` — pushed to `main` at `e816588`
+- [x] GHCR republish — [Release packages run #3](https://github.com/hamidmatiny/PRISM/actions/runs/30848566180), `Status Success`, 2m1s, 11/11 service images built and pushed on the `v1.2.0` tag
+- [ ] GitHub Release object — draft prepared, pending founder go-ahead to publish (same bundled `v1.0.0`/`v1.1.0` format: highlights, phase records, GHCR image table, CI link)
 
 ## Tagging
 
