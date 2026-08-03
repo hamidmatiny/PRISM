@@ -342,3 +342,135 @@ def test_golden_path_fleet_to_ask_prism(stack_urls: dict[str, str]) -> None:
     # Keep defect_class in the report for humans reading failures.
     assert defect_class
     os.environ["PRISM_GOLDEN_FINDING_ID"] = finding_id
+
+
+# --- Phase 19 — full chaos scenario: scenario-engine trips a breaker for real,
+# a human acknowledges + resolves it via the API, the cockpit proxy reflects
+# the state change, and Ask PRISM answers a grounded question about it. ---
+
+CHAOS_SEED = 14
+CHAOS_ASSET_ID = "PRISM-AST-001"
+CHAOS_TICKS = 20
+
+
+def _poll_breaker_state(
+    incident_base: str, asset_id: str, *, want: str, timeout_s: float = 20.0
+) -> dict:
+    """Bounded poll — same 0.2s/30-try shape as the gold-file wait above."""
+    deadline = time.monotonic() + timeout_s
+    last: dict = {}
+    while time.monotonic() < deadline:
+        code, body = _json("GET", f"{incident_base}/breakers/{asset_id}")
+        if code == 200:
+            last = body  # type: ignore[assignment]
+            if last.get("state") == want:
+                return last
+        time.sleep(0.3)
+    raise AssertionError(f"breaker for {asset_id} never reached {want!r}: {last}")
+
+
+@pytest.mark.e2e
+def test_chaos_golden_path(stack_urls: dict[str, str]) -> None:
+    """Phases 12+14+15+18+19, end to end, against the live compose stack.
+
+    scenario-engine (fixed seed 14) -> ingestion's real two-layer validation
+    -> incident-engine's OPA/Rego quarantine_rate policy actually trips
+    PRISM-AST-001's breaker -> a human acknowledges + resolves it over the
+    real API -> the cockpit's own proxy surface (same path the Breaker Board
+    fetches) reflects the closed state -> Ask PRISM answers a grounded
+    question about the resolved incident.
+    """
+    incident_base = stack_urls["incident"]
+
+    # OPA is a real dependency container (Phase 18); its own healthcheck can
+    # lag incident-engine's plain 200 OK, so wait for policy_engine.ready
+    # specifically before driving any chaos through it.
+    deadline = time.monotonic() + 20.0
+    engine_ready = False
+    while time.monotonic() < deadline:
+        code, health = _json("GET", f"{incident_base}/health")
+        if code == 200 and health.get("policy_engine", {}).get("ready"):  # type: ignore[union-attr]
+            engine_ready = True
+            break
+        time.sleep(0.5)
+    assert engine_ready, "incident-engine's OPA policy engine never became ready"
+
+    # Sanity: this asset must not already have an open breaker from an
+    # earlier test/run sharing the same live stack.
+    code, before = _json("GET", f"{incident_base}/breakers/{CHAOS_ASSET_ID}")
+    if code == 200 and before.get("state") != "closed":  # type: ignore[union-attr]
+        pytest.skip(f"{CHAOS_ASSET_ID} breaker not closed before chaos run: {before}")
+
+    # --- 1) Drive real chaos through the real pipeline (Phase 12 + 13) ---
+    # Same admin endpoint the cockpit's ScenarioControls.vue calls -- reuses
+    # IngestPipeline.process_one exactly, on an isolated pipeline instance so
+    # this doesn't disturb the continuously-running live-mode pipeline.
+    code, run_result = _json(
+        "POST",
+        f"{stack_urls['ingestion']}/v1/scenario-runs",
+        payload={
+            "seed": CHAOS_SEED,
+            "ticks": CHAOS_TICKS,
+            "rate_hz": 10.0,
+            "scenario_id": "scn_phase19_chaos",
+        },
+    )
+    assert code == 200, run_result
+    assert run_result["rejected"] >= 3, run_result  # type: ignore[index]
+
+    # --- 2) incident-engine's real OPA/Rego quarantine_rate policy trips it
+    # (Phase 14 FSM + Phase 18 Rego -- not asserted/faked, polled for real) ---
+    opened = _poll_breaker_state(incident_base, CHAOS_ASSET_ID, want="open")
+    assert opened["trip_reason"] == "quarantine_rate", opened
+    incident_id = opened["incident_id"]
+    assert incident_id, opened
+
+    code, incident = _json("GET", f"{incident_base}/incidents/{incident_id}")
+    assert code == 200, incident
+    assert incident["status"] == "open", incident  # type: ignore[index]
+    assert incident["asset_id"] == CHAOS_ASSET_ID, incident  # type: ignore[index]
+
+    # --- 3) A human acknowledges, then resolves, over the real API (Phase 14) ---
+    code, ack = _json("POST", f"{incident_base}/incidents/{incident_id}/acknowledge")
+    assert code == 200, ack
+    assert ack["status"] == "acknowledged", ack  # type: ignore[index]
+
+    code, resolved = _json("POST", f"{incident_base}/incidents/{incident_id}/resolve")
+    assert code == 200, resolved
+    assert resolved["status"] == "resolved", resolved  # type: ignore[index]
+
+    # --- 4) Breaker closes immediately on manual resolve (store.py resolve()) ---
+    code, after = _json("GET", f"{incident_base}/breakers/{CHAOS_ASSET_ID}")
+    assert code == 200, after
+    assert after["state"] == "closed", after  # type: ignore[index]
+    assert after["incident_id"] is None, after  # type: ignore[index]
+
+    # --- 5) Cockpit reflects it -- same /proxy/incident path BreakerBoard.vue
+    # and ScenarioControls.vue actually fetch, not a re-implementation ---
+    code, cockpit_breaker = _json(
+        "GET", f"{stack_urls['cockpit']}/proxy/incident/breakers/{CHAOS_ASSET_ID}"
+    )
+    assert code == 200, cockpit_breaker
+    assert cockpit_breaker["state"] == "closed", cockpit_breaker  # type: ignore[index]
+
+    code, cockpit_incident = _json(
+        "GET", f"{stack_urls['cockpit']}/proxy/incident/incidents/{incident_id}"
+    )
+    assert code == 200, cockpit_incident
+    assert cockpit_incident["status"] == "resolved", cockpit_incident  # type: ignore[index]
+
+    # --- 6) Ask PRISM answers grounded, from real incident-engine data
+    # (Phase 15's query_breakers/query_incidents tools, ADR-004) ---
+    viewer = _print_token("viewer")
+    question = f"What happened to asset {CHAOS_ASSET_ID}? Is its circuit breaker open right now?"
+    code, ask = _json(
+        "POST",
+        f"{stack_urls['copilot']}/v1/ask",
+        payload={"question": question, "control_plane_token": viewer},
+    )
+    assert code == 200, ask
+    assert ask["grounded"] is True, ask  # type: ignore[index]
+    answer = str(ask["answer"])  # type: ignore[index]
+    assert CHAOS_ASSET_ID in answer, ask
+    tools = ask.get("tools_used") or []  # type: ignore[union-attr]
+    assert "query_breakers" in tools or "query_incidents" in tools, ask

@@ -44,6 +44,8 @@ wait_http "http://127.0.0.1:9102/health" "cv-service"
 wait_http "http://127.0.0.1:9103/health" "activation-gateway"
 wait_http "http://127.0.0.1:9100/health" "control-plane"
 wait_http "http://127.0.0.1:9104/health" "ai-copilot"
+wait_http "http://127.0.0.1:9107/health" "scenario-engine"
+wait_http "http://127.0.0.1:9108/health" "incident-engine"
 # cockpit is Vite — any HTTP response is fine
 while ! curl -sf -o /dev/null "http://127.0.0.1:9101/" 2>/dev/null; do
   now=$(date +%s)

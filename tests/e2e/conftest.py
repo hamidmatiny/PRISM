@@ -40,6 +40,9 @@ def stack_urls(e2e_enabled: bool) -> dict[str, str]:
         "control": os.environ.get("PRISM_CONTROL_PLANE_URL", "http://127.0.0.1:9100"),
         "copilot": os.environ.get("PRISM_COPILOT_URL", "http://127.0.0.1:9104"),
         "cockpit": os.environ.get("PRISM_COCKPIT_URL", "http://127.0.0.1:9101"),
+        # Phase 19 — chaos golden path needs these directly plus via the cockpit proxy.
+        "incident": os.environ.get("PRISM_INCIDENT_ENGINE_URL", "http://127.0.0.1:9108"),
+        "scenario": os.environ.get("PRISM_SCENARIO_URL", "http://127.0.0.1:9107"),
     }
     missing: list[str] = []
     for name, base in urls.items():

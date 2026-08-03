@@ -4,6 +4,17 @@ All notable changes to PRISM are documented here.
 
 ## [Unreleased]
 
+## [1.2.0] — 2026-08-03 — Orchestration and honest drift (Phases 16–19)
+
+See [docs/RELEASE_PLAN.md](docs/RELEASE_PLAN.md) and [docs/CASE_STUDY.md](docs/CASE_STUDY.md).
+
+### Phase 19 — Golden-path chaos e2e + v1.2.0 release + case study
+
+- `tests/e2e/test_golden_path.py::test_chaos_golden_path` — extends the live golden-path e2e with a full chaos loop against the real compose stack: scenario-engine (seed 14) drives real chaos through ingestion's admin `/v1/scenario-runs` endpoint, incident-engine's real OPA/Rego `quarantine_rate` policy trips `PRISM-AST-001`'s breaker (and only that asset's), a human acknowledges + resolves it over the real API, the cockpit's own `/proxy/incident` surface reflects the closed state, and Ask PRISM answers a grounded question about it (`query_breakers`/`query_incidents`, ADR-004)
+- `docs/CASE_STUDY.md` — the same seed-14 run walked through end to end with real, reproduced timeline data (Vulcan/Argus case-study precedent)
+- `examples/demo/run_demo.sh` — waits for scenario-engine and incident-engine health explicitly, not just transitively via `depends_on`
+- `tests/unit/test_foundation.py` — README Status/monorepo-tree guards extended through Phase 19
+
 ### Phase 18 — OPA/Rego trip policy maturity
 
 - Trip thresholds moved from YAML/Python into `incident-engine/policies/rego/*.rego` (+ `*_test.rego`, `opa test`)

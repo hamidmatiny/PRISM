@@ -108,6 +108,7 @@ PRISM ingests fleet camera + sensor telemetry, runs computer-vision defect/anoma
 | 16 | Drift-monitor (honest-baseline drift detection) | Complete — see [`docs/phases/PHASE_16_COMPLETION.md`](docs/phases/PHASE_16_COMPLETION.md) |
 | 17 | Dagster orchestration (lakehouse + drift + optional reseed) | Complete — see [`docs/phases/PHASE_17_COMPLETION.md`](docs/phases/PHASE_17_COMPLETION.md) |
 | 18 | OPA/Rego trip policy maturity | Complete — see [`docs/phases/PHASE_18_COMPLETION.md`](docs/phases/PHASE_18_COMPLETION.md) |
+| 19 | Golden-path chaos e2e + v1.2.0 release + case study | Complete — see [`docs/phases/PHASE_19_COMPLETION.md`](docs/phases/PHASE_19_COMPLETION.md) |
 
 ## Monorepo layout
 
@@ -132,7 +133,7 @@ prism/
 ├── infra/terraform/azure       # Azure DR warm standby (validate only)
 ├── observability/              # OTel + load tests
 ├── docs/adr/                   # ADRs
-├── docs/phases/                # PHASE_00…18_COMPLETION.md
+├── docs/phases/                # PHASE_00…19_COMPLETION.md
 ├── docker-compose.yml
 ├── Makefile
 ├── LICENSE                     # Apache-2.0
@@ -174,6 +175,6 @@ PRISM owns **9100–9199** (avoids Argus / Vulcan on shared laptops).
 - [ADRs](docs/adr/index.md) (001–006)
 - [Demo script](docs/DEMO_SCRIPT.md) (Phase 11)
 - [Runbooks](docs/runbooks/README.md) · [Security reviews](docs/security/iam-least-privilege-audit.md)
-- [Phase completions](docs/phases/README.md) (00–17)
+- [Phase completions](docs/phases/README.md) (00–19) · [Case study](docs/CASE_STUDY.md)
 - [Release plan](docs/RELEASE_PLAN.md) · [Packaging plan](docs/PACKAGING_PLAN.md) · [Changelog](CHANGELOG.md)
 - [LICENSE](LICENSE) (Apache-2.0)
