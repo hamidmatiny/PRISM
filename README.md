@@ -107,6 +107,7 @@ PRISM ingests fleet camera + sensor telemetry, runs computer-vision defect/anoma
 | 15 | Cockpit Breaker Board + scenario controls + copilot tools | Complete — see [`docs/phases/PHASE_15_COMPLETION.md`](docs/phases/PHASE_15_COMPLETION.md) |
 | 16 | Drift-monitor (honest-baseline drift detection) | Complete — see [`docs/phases/PHASE_16_COMPLETION.md`](docs/phases/PHASE_16_COMPLETION.md) |
 | 17 | Dagster orchestration (lakehouse + drift + optional reseed) | Complete — see [`docs/phases/PHASE_17_COMPLETION.md`](docs/phases/PHASE_17_COMPLETION.md) |
+| 18 | OPA/Rego trip policy maturity | Complete — see [`docs/phases/PHASE_18_COMPLETION.md`](docs/phases/PHASE_18_COMPLETION.md) |
 
 ## Monorepo layout
 
@@ -131,7 +132,7 @@ prism/
 ├── infra/terraform/azure       # Azure DR warm standby (validate only)
 ├── observability/              # OTel + load tests
 ├── docs/adr/                   # ADRs
-├── docs/phases/                # PHASE_00…17_COMPLETION.md
+├── docs/phases/                # PHASE_00…18_COMPLETION.md
 ├── docker-compose.yml
 ├── Makefile
 ├── LICENSE                     # Apache-2.0
@@ -156,6 +157,7 @@ PRISM owns **9100–9199** (avoids Argus / Vulcan on shared laptops).
 | 9108 | incident-engine |
 | 9109 | drift-monitor |
 | 9112 | orchestration / Dagster (optional profile `dagster`) |
+| 9113 | OPA (`opa run --server`) |
 | 9199 | Phase 0 foundation stub |
 
 ## Engineering bar

@@ -1,19 +1,8 @@
-# Trip policy thresholds — same numbers sentinel-ray's orchestrator.py proved
-# out and Argus's incident-engine ported into policy-as-code (Phase 18 will
-# promote these to real OPA/Rego; this phase keeps them declarative YAML).
+# FSM runtime knobs only (Phase 18).
+# Trip thresholds are source-of-truth in policies/rego/*.rego — do not re-add
+# quarantine/QA/drift thresholds here and expect them to be evaluated.
+# quarantine_rate.window_batches MUST match prism.quarantine_rate.window_min.
 policies:
   quarantine_rate:
-    # Rolling window of the last N per-asset ingestion outcomes (accepted or
-    # quarantined). Trips when quarantined/window > threshold.
     window_batches: 5
-    threshold: 0.15
-  consecutive_qa_failures:
-    # Consecutive cv-service low-confidence (review-routed) findings for one
-    # asset, reset to zero on any published (qa_pass) finding.
-    threshold: 3
-  drifted_features:
-    # No producer exists until Phase 16's drift-monitor ships "drift"
-    # observations. Real, correctly-implemented, dormant — not fabricated
-    # readiness (ADR-005): it simply never trips until real evidence exists.
-    threshold: 2
 cooldown_seconds: 8

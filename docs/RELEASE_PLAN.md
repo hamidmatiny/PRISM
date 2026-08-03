@@ -49,7 +49,7 @@ Full Phases 0–11 portfolio close-out. See git tag `v1.0.0` and
 
 - [x] Phase 16 complete under `docs/phases/PHASE_16_COMPLETION.md`
 - [x] Phase 17 complete under `docs/phases/PHASE_17_COMPLETION.md`
-- [ ] Phase 18 complete
+- [x] Phase 18 complete under `docs/phases/PHASE_18_COMPLETION.md`
 - [ ] Phase 19 complete
 - [ ] Git tag `v1.2.0` + GitHub Release + GHCR republish
 

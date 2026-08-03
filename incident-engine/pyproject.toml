@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "prism-incident-engine"
-version = "0.14.0"
-description = "PRISM per-asset circuit breaker + incident tracking (Phase 14)"
+version = "0.18.0"
+description = "PRISM per-asset circuit breaker + OPA/Rego trip policies (Phase 18)"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [

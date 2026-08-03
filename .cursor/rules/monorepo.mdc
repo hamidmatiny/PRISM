@@ -53,7 +53,8 @@ Commit only when the user asks (unless a phase Definition of Done explicitly req
 | 9109 | drift-monitor (Phase 16) |
 | 9110 / 9111 | mock Redshift / Snowflake |
 | 9112 | orchestration / Dagster webserver (Phase 17, profile `dagster`) |
-| 9113–9198 | future |
+| 9113 | OPA (`opa run --server`, Phase 18) |
+| 9114–9198 | future |
 | 9199 | foundation-stub / docs static |
 
 ## Secrets

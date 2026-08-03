@@ -25,6 +25,10 @@ from prism_ingestion.pipeline import IngestPipeline
 from prism_scenario_engine.api import create_app as create_scenario_app
 from prism_scenario_engine.config import ScenarioConfig
 
+_REPO = Path(__file__).resolve().parents[2]
+_OPA_BIN = str(_REPO / ".venv" / "bin" / "opa")
+_REGO = _REPO / "incident-engine" / "policies" / "rego"
+
 
 def _free_port() -> int:
     with socket.socket() as s:
@@ -60,15 +64,21 @@ def three_live_services(tmp_path: Path):
     incident_port = _free_port()
     drift_port = _free_port()
 
-    incident_cfg = IncidentConfig(port=incident_port, data_root=tmp_path / "incident-data")
+    # Trip thresholds come from Rego; only shrink cooldown for the probe path.
+    # Isolation from quarantine/QA: this fixture never emits those observation kinds.
+    incident_cfg = IncidentConfig(
+        port=incident_port,
+        data_root=tmp_path / "incident-data",
+        opa_url=None,
+        opa_policy_dir=_REGO,
+        opa_bin=_OPA_BIN if Path(_OPA_BIN).is_file() else None,
+    )
     incident_app = create_incident_app(incident_cfg)
     incident_app.state.store.policies = TripPolicies(
-        quarantine_rate_window=3,
-        quarantine_rate_threshold=1.1,  # unreachable — isolates this test to drift
-        consecutive_qa_failures_threshold=999,  # unreachable
-        drifted_features_threshold=2,
+        quarantine_rate_window=5,
         cooldown_seconds=0.3,
     )
+    incident_app.state.store._breakers.clear()
     _run_uvicorn(incident_app, incident_port)
 
     incident_url = f"http://127.0.0.1:{incident_port}"

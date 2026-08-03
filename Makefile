@@ -7,7 +7,7 @@
 	phase1-check phase2-check phase3-check phase4-check phase5-check \
 	phase6-check phase7-check phase8-check phase9-check phase10-check \
 	phase11-check phase12-check phase13-check phase14-check phase16-check \
-	phase17-check cockpit-build demo e2e
+	phase17-check phase18-check cockpit-build demo e2e
 
 CHECKOV_VERSION := $(shell tr -d '[:space:]' < infra/terraform/CHECKOV_VERSION)
 
@@ -44,6 +44,7 @@ help:
 	@echo "  make phase14-check      - lint + unit tests (per-source circuit breaker)"
 	@echo "  make phase16-check      - lint + unit tests (drift-monitor, honest baseline)"
 	@echo "  make phase17-check      - lint + unit tests (Dagster orchestration)"
+	@echo "  make phase18-check      - lint + opa test + unit tests (Rego trip policies)"
 
 setup:
 	@echo "Installing dev/test deps (mirrors CI's test job exactly — see requirements-dev.txt)"
@@ -189,3 +190,7 @@ phase14-check: lint test
 phase16-check: lint test
 
 phase17-check: lint test
+
+phase18-check: lint
+	opa test incident-engine/policies/rego -v
+	$(MAKE) test

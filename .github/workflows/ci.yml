@@ -50,6 +50,13 @@ jobs:
         with:
           python-version: ${{ env.PYTHON_VERSION }}
 
+      - name: Install OPA (Phase 18 Rego tests + incident-engine eval)
+        run: |
+          curl -fsSL -o /usr/local/bin/opa \
+            https://openpolicyagent.org/downloads/v1.4.2/opa_linux_amd64_static
+          chmod +x /usr/local/bin/opa
+          opa version
+
       - name: Install packages + test deps
         run: |
           pip install --upgrade pip
@@ -71,6 +78,9 @@ jobs:
           pip install -e control-plane
           pip install -e ai-copilot
           pip install -e observability/otel
+
+      - name: OPA Rego unit tests (policy logic independent of Python)
+        run: opa test incident-engine/policies/rego -v
 
       - name: Unity Catalog bootstrap structural validation
         run: |

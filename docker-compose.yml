@@ -82,6 +82,28 @@ services:
 
   # Phase 14 — per-source circuit breaker + incident journal (ADR-005: pause the
   # source, not the whole pipeline).
+  # Phase 18 — local OPA server (ADR-001: open-source binary, no SaaS).
+  opa:
+    image: openpolicyagent/opa:1.4.2
+    container_name: prism-opa
+    ports:
+      - "9113:8181"
+    command:
+      - run
+      - --server
+      - --addr=0.0.0.0:8181
+      - --log-level=error
+      - /policies
+    volumes:
+      - ./incident-engine/policies/rego:/policies:ro
+    # Minimal image (scratch) — probe via the opa binary itself.
+    healthcheck:
+      test: ["CMD", "/opa", "version"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 5s
+
   incident-engine:
     build:
       context: .
@@ -92,11 +114,15 @@ services:
     environment:
       PRISM_INCIDENT_ENGINE_PORT: "9108"
       PRISM_DATA_ROOT: /data
+      PRISM_OPA_URL: http://opa:8181
+      PRISM_OPA_POLICY_DIR: /policies/rego
       OTEL_SERVICE_NAME: incident-engine
       OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4318
       OTEL_RESOURCE_ATTRIBUTES: service.namespace=prism,deployment.environment=local
     depends_on:
       otel-collector:
+        condition: service_started
+      opa:
         condition: service_started
     volumes:
       - ./.data:/data

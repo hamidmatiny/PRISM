@@ -9,6 +9,7 @@ from pydantic import BaseModel, Field
 
 from prism_incident_engine.config import IncidentConfig
 from prism_incident_engine.journal import IncidentJournal
+from prism_incident_engine.opa_client import build_policy_engine
 from prism_incident_engine.store import IncidentStore
 from prism_incident_engine.trip_policies import load_policies
 from prism_incident_engine.webhook import WebhookSender
@@ -28,16 +29,25 @@ def create_app(config: IncidentConfig | None = None) -> FastAPI:
     policies = load_policies(cfg.policies_path)
     journal = IncidentJournal(cfg.journal_path)
     webhook = WebhookSender(cfg.webhook_inbox_path, receiver_url=f"http://127.0.0.1:{cfg.port}")
-    store = IncidentStore(policies, journal, webhook)
+    policy_engine = build_policy_engine(
+        opa_url=cfg.opa_url,
+        policy_dir=cfg.opa_policy_dir,
+        opa_bin=cfg.opa_bin,
+    )
+    store = IncidentStore(policies, journal, webhook, policy_engine)
 
     app = FastAPI(
         title="PRISM Incident Engine",
-        version="0.14.0",
-        description="Per-asset circuit breaker: closed -> open -> half_open (Phase 14).",
+        version="0.18.0",
+        description=(
+            "Per-asset circuit breaker: closed -> open -> half_open. "
+            "Trip thresholds evaluated by OPA/Rego (Phase 18)."
+        ),
     )
     app.state.config = cfg
     app.state.store = store
     app.state.policies = policies
+    app.state.policy_engine = policy_engine
 
     try:
         from prism_otel import instrument_fastapi
@@ -49,18 +59,22 @@ def create_app(config: IncidentConfig | None = None) -> FastAPI:
     @app.get("/health")
     def health() -> dict[str, Any]:
         breakers = store.all_breakers()
+        engine_ready = policy_engine.ready()
         return {
             "status": "ok",
             "service": "incident-engine",
-            "version": "0.14.0",
+            "version": "0.18.0",
             "assets_tracked": len(breakers),
             "open_breakers": sum(1 for b in breakers if b["state"] == "open"),
             "half_open_breakers": sum(1 for b in breakers if b["state"] == "half_open"),
-            "policies": {
+            "policy_engine": {
+                "ready": engine_ready,
+                "mode": policy_engine.mode,
+                "policy_dir": policy_engine.policy_dir,
+                "source_of_truth": "rego",
+            },
+            "fsm": {
                 "quarantine_rate_window": policies.quarantine_rate_window,
-                "quarantine_rate_threshold": policies.quarantine_rate_threshold,
-                "consecutive_qa_failures_threshold": policies.consecutive_qa_failures_threshold,
-                "drifted_features_threshold": policies.drifted_features_threshold,
                 "cooldown_seconds": policies.cooldown_seconds,
             },
         }

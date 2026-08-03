@@ -4,6 +4,12 @@ All notable changes to PRISM are documented here.
 
 ## [Unreleased]
 
+### Phase 18 — OPA/Rego trip policy maturity
+
+- Trip thresholds moved from YAML/Python into `incident-engine/policies/rego/*.rego` (+ `*_test.rego`, `opa test`)
+- `incident-engine` evaluates trips via local OPA (Compose `:9113` or `opa eval`); fail-open when unreachable (ADR-005)
+- Escalation routing Rego feeds mock webhook payload
+
 ### Phase 17 — Dagster orchestration
 
 - `orchestration/` — Dagster assets for lakehouse medallion, drift-monitor status, optional drift→scenario reseed

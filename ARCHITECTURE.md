@@ -112,11 +112,12 @@ Operator entrypoint: `make demo` then `make e2e`. Talk track: [docs/DEMO_SCRIPT.
 | 9109 | drift-monitor |
 | 9110 / 9111 | mock Redshift / Snowflake |
 | 9112 | orchestration / Dagster (optional profile `dagster`) |
+| 9113 | OPA (`opa run --server`) |
 | 9199 | foundation stub |
 
 ## ADRs
 
-See [docs/adr/index.md](docs/adr/index.md) — ADRs 001–006 covering cost safety, multi-warehouse activation, Azure DR tradeoff, copilot non-fabrication, earned-evidence honesty, and Dagster asset-graph orchestration.
+See [docs/adr/index.md](docs/adr/index.md) — ADRs 001–006 covering cost safety, multi-warehouse activation, Azure DR tradeoff, copilot non-fabrication, earned-evidence honesty, and Dagster asset-graph orchestration. Trip thresholds are Rego under `incident-engine/policies/rego/` (Phase 18).
 
 ## Cost safety
 

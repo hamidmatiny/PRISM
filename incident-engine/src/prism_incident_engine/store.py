@@ -9,6 +9,7 @@ from typing import Any, Literal
 
 from prism_incident_engine.fsm import AssetBreaker
 from prism_incident_engine.journal import IncidentJournal
+from prism_incident_engine.opa_client import PolicyEngine
 from prism_incident_engine.timeutil import now_utc
 from prism_incident_engine.trip_policies import TripPolicies
 from prism_incident_engine.webhook import WebhookSender
@@ -51,11 +52,16 @@ class Incident:
 
 class IncidentStore:
     def __init__(
-        self, policies: TripPolicies, journal: IncidentJournal, webhook: WebhookSender
+        self,
+        policies: TripPolicies,
+        journal: IncidentJournal,
+        webhook: WebhookSender,
+        policy_engine: PolicyEngine,
     ) -> None:
         self.policies = policies
         self.journal = journal
         self.webhook = webhook
+        self.policy_engine = policy_engine
         self._breakers: dict[str, AssetBreaker] = {}
         self._incidents: dict[str, Incident] = {}
 
@@ -64,7 +70,11 @@ class IncidentStore:
     def breaker(self, asset_id: str) -> AssetBreaker:
         b = self._breakers.get(asset_id)
         if b is None:
-            b = AssetBreaker(asset_id=asset_id, policies=self.policies)
+            b = AssetBreaker(
+                asset_id=asset_id,
+                policies=self.policies,
+                policy_engine=self.policy_engine,
+            )
             self._breakers[asset_id] = b
         return b
 
@@ -155,10 +165,22 @@ class IncidentStore:
             self._incidents[incident_id] = Incident(
                 incident_id=incident_id, asset_id=breaker.asset_id, trigger=reason
             )
+            route = self.policy_engine.evaluate_escalation(reason)
+            escalation = {
+                "channel": route.channel,
+                "severity": route.severity,
+                "notify": route.notify,
+                "policy": route.policy,
+                "policy_engine_ready": route.ready,
+            }
             self.journal.append(
                 "incident_opened",
                 asset_id=breaker.asset_id,
-                detail={"incident_id": incident_id, "trigger": reason},
+                detail={
+                    "incident_id": incident_id,
+                    "trigger": reason,
+                    "escalation": escalation,
+                },
             )
             self.webhook.notify(
                 {
@@ -166,6 +188,7 @@ class IncidentStore:
                     "incident_id": incident_id,
                     "asset_id": breaker.asset_id,
                     "trigger": reason,
+                    "escalation": escalation,
                 }
             )
         self.journal.append(

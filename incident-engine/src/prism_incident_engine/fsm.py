@@ -5,6 +5,10 @@ API shape matter more than matching Argus's Go implementation language):
 cooldown-gated reopen probe, auto-resolve on recovery, same-incident-id
 refresh on retrip rather than minting a new incident. Scoped per asset_id —
 tripping one asset's breaker never touches any other asset's state.
+
+Phase 18: trip *thresholds* are evaluated by OPA/Rego (see
+``policies/rego/*.rego``). This module still owns the rolling window / counters
+and the cooldown FSM; ``tripped_policy()`` asks the policy engine.
 """
 
 from __future__ import annotations
@@ -12,9 +16,13 @@ from __future__ import annotations
 from collections import deque
 from dataclasses import dataclass, field
 from datetime import datetime
+from typing import TYPE_CHECKING
 
 from prism_incident_engine.timeutil import now_utc
 from prism_incident_engine.trip_policies import TripPolicies
+
+if TYPE_CHECKING:
+    from prism_incident_engine.opa_client import PolicyEngine
 
 BreakerState = str  # "closed" | "open" | "half_open"
 
@@ -23,6 +31,7 @@ BreakerState = str  # "closed" | "open" | "half_open"
 class AssetBreaker:
     asset_id: str
     policies: TripPolicies
+    policy_engine: PolicyEngine
     state: BreakerState = "closed"
     incident_id: str | None = None
     trip_reason: str | None = None
@@ -31,6 +40,7 @@ class AssetBreaker:
     ingestion_window: deque[bool] = field(default_factory=lambda: deque(maxlen=1))
     consecutive_qa_failures: int = 0
     drifted_feature_count: int = 0
+    last_policy_error: str | None = None
 
     def __post_init__(self) -> None:
         self.ingestion_window = deque(maxlen=self.policies.quarantine_rate_window)
@@ -44,14 +54,13 @@ class AssetBreaker:
         self.consecutive_qa_failures = 0 if passed else self.consecutive_qa_failures + 1
 
     def record_drift(self, *, drifted_feature_count: int) -> None:
-        # No producer exists until Phase 16's drift-monitor ships "drift"
-        # observations (ADR-005: correctly implemented, dormant, not faked).
         self.drifted_feature_count = drifted_feature_count
 
     def clear_counters(self) -> None:
         self.ingestion_window.clear()
         self.consecutive_qa_failures = 0
         self.drifted_feature_count = 0
+        self.last_policy_error = None
 
     # -- trip evaluation ------------------------------------------------
 
@@ -61,15 +70,26 @@ class AssetBreaker:
             return None
         return sum(self.ingestion_window) / len(self.ingestion_window)
 
+    def policy_input(self) -> dict:
+        return {
+            "quarantine_window": list(self.ingestion_window),
+            "consecutive_qa_failures": self.consecutive_qa_failures,
+            "drifted_feature_count": self.drifted_feature_count,
+        }
+
     def tripped_policy(self) -> str | None:
-        """Return the name of the first policy currently in violation, or None."""
-        rate = self.quarantine_rate
-        if rate is not None and rate > self.policies.quarantine_rate_threshold:
-            return "quarantine_rate"
-        if self.consecutive_qa_failures >= self.policies.consecutive_qa_failures_threshold:
-            return "consecutive_qa_failures"
-        if self.drifted_feature_count >= self.policies.drifted_features_threshold:
-            return "drifted_features"
+        """Return the name of the first Rego policy currently in violation, or None.
+
+        When the policy engine is unreachable, returns None (fail-open) and
+        records ``last_policy_error`` — never silently re-implements thresholds
+        in Python.
+        """
+        decision = self.policy_engine.evaluate_trip(self.policy_input())
+        self.last_policy_error = decision.error
+        if not decision.ready:
+            return None
+        if decision.trip:
+            return decision.reason
         return None
 
     # -- cooldown / probe -----------------------------------------------
@@ -101,4 +121,5 @@ class AssetBreaker:
             if self.opened_at
             else None,
             "last_transition_at": self.last_transition_at.isoformat().replace("+00:00", "Z"),
+            "policy_engine_error": self.last_policy_error,
         }
